@@ -9,7 +9,9 @@
       "Bash(then echo \"exists\")",
       "Bash(else echo \"not_exists\")",
       "Bash(fi)",
-      "Bash(git rev-parse:*)"
+      "Bash(git rev-parse:*)",
+      "Bash(pnpm init:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": [],
     "ask": []
