@@ -1,10 +1,30 @@
+import { ChatContainer } from './features/chat/components/ChatContainer';
+import { useConversation } from './features/chat/hooks/useConversation';
+
 function App() {
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold">Teach - AI English Learning</h1>
-        <p className="text-muted-foreground mt-2">Application starting...</p>
+  const { conversation, isLoading, error } = useConversation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-muted-foreground">Initializing Teach...</div>
       </div>
+    );
+  }
+
+  if (error || !conversation) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-red-500">
+          Error: {error?.message || 'Failed to load conversation'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen bg-background text-foreground">
+      <ChatContainer conversationId={conversation.id} />
     </div>
   );
 }

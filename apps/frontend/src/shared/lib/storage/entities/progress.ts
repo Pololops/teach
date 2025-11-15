@@ -112,9 +112,9 @@ export async function incrementConversationCount(userId: string): Promise<void> 
 }
 
 /**
- * Increment message count
+ * Increment user's total message count
  */
-export async function incrementMessageCount(userId: string): Promise<void> {
+export async function incrementUserMessageCount(userId: string): Promise<void> {
   const progress = await getProgress(userId);
 
   await db.progressMetrics.update(userId, {

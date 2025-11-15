@@ -1,8 +1,7 @@
 import { create } from 'zustand';
-import { User, UserPreferences, CEFRLevel } from '@teach/shared';
+import type { User, UserPreferences, CEFRLevel } from '@teach/shared';
 import {
   getUser,
-  updateUser,
   updateUserLevel,
   updateUserPreferences,
 } from '../lib/storage/entities/user';

@@ -1,5 +1,11 @@
 import { z } from 'zod';
 import { CEFRLevelSchema } from './cefr.js';
+import { AIProviderSchema } from './api.js';
+
+/**
+ * AI Provider type (re-export)
+ */
+export type AIProviderType = z.infer<typeof AIProviderSchema>;
 
 /**
  * User preferences
@@ -8,7 +14,7 @@ export const UserPreferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']),
   showCorrections: z.boolean(),
   showSuggestions: z.boolean(),
-  aiProvider: z.enum(['openai', 'anthropic', 'auto']),
+  aiProvider: AIProviderSchema,
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 
