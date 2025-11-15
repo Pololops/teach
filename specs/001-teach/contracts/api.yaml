@@ -1,0 +1,624 @@
+openapi: 3.0.3
+info:
+  title: Teach API - AI English Learning Chat
+  version: 1.0.0
+  description: |
+    Backend API for Teach application. Provides AI proxy endpoints and optional cloud sync.
+
+    **Architecture**: Lightweight backend (optional) for:
+    - AI provider proxy (handles CORS, rate limiting, API key security)
+    - Cloud sync (optional user opt-in for cross-device data)
+
+    **Primary storage**: Client-side IndexedDB (local-first)
+    **Secondary storage**: Supabase PostgreSQL (cloud sync, opt-in)
+
+servers:
+  - url: https://api.teach.app/v1
+    description: Production API
+  - url: http://localhost:3000/v1
+    description: Local development
+
+tags:
+  - name: chat
+    description: AI conversation endpoints
+  - name: sync
+    description: Cloud sync endpoints (requires authentication)
+  - name: health
+    description: Health check and status
+
+security:
+  - BearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      description: Returns API health status and version
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /chat/stream:
+    post:
+      tags: [chat]
+      summary: Stream AI conversation response
+      description: |
+        Proxies AI request to configured provider (OpenAI or Anthropic).
+        Returns Server-Sent Events (SSE) stream for real-time response.
+
+        **Performance**: <100ms time-to-first-token
+        **Security**: API keys stored server-side, not exposed to client
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatStreamRequest'
+      responses:
+        '200':
+          description: SSE stream of AI response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  data: {"content": "Hello"}
+
+                  data: {"content": " there"}
+
+                  data: {"content": "!"}
+
+                  data: [DONE]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /chat/message:
+    post:
+      tags: [chat]
+      summary: Send single message (non-streaming fallback)
+      description: |
+        Fallback endpoint for clients that don't support SSE.
+        Returns complete AI response after generation finishes.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessageResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sync/conversations:
+    get:
+      tags: [sync]
+      summary: Get all user conversations
+      description: Fetch conversations from cloud storage
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, archived, deleted]
+          description: Filter by conversation status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [sync]
+      summary: Create or update conversation
+      description: Sync conversation to cloud storage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Conversation'
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '200':
+          description: Conversation updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /sync/conversations/{id}:
+    get:
+      tags: [sync]
+      summary: Get single conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [sync]
+      summary: Delete conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Conversation deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sync/progress:
+    get:
+      tags: [sync]
+      summary: Get user progress metrics
+      responses:
+        '200':
+          description: Progress metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressMetrics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [sync]
+      summary: Update progress metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProgressMetrics'
+      responses:
+        '200':
+          description: Metrics updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressMetrics'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token for authenticated endpoints
+
+  schemas:
+    ChatStreamRequest:
+      type: object
+      required: [messages, targetLevel]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+          minItems: 1
+          maxItems: 100
+        targetLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        provider:
+          type: string
+          enum: [openai, anthropic, auto]
+          default: auto
+          description: Preferred AI provider (auto = select based on availability)
+        stream:
+          type: boolean
+          default: true
+
+    ChatMessageRequest:
+      type: object
+      required: [messages, targetLevel]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        targetLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        provider:
+          type: string
+          enum: [openai, anthropic, auto]
+          default: auto
+
+    ChatMessageResponse:
+      type: object
+      properties:
+        message:
+          $ref: '#/components/schemas/ChatMessage'
+        metadata:
+          type: object
+          properties:
+            provider:
+              type: string
+              example: openai
+            model:
+              type: string
+              example: gpt-4
+            tokensUsed:
+              type: integer
+
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+
+    Conversation:
+      type: object
+      required: [id, userId, title, difficultyLevel, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        difficultyLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        status:
+          type: string
+          enum: [active, archived, deleted]
+        messageCount:
+          type: integer
+          minimum: 0
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      required: [id, conversationId, role, content, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversationId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 5000
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          $ref: '#/components/schemas/MessageMetadata'
+
+    MessageMetadata:
+      type: object
+      properties:
+        detectedLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        vocabularyComplexity:
+          type: number
+          minimum: 0
+          maximum: 1
+        grammarAccuracy:
+          type: number
+          minimum: 0
+          maximum: 1
+        sentenceLength:
+          type: number
+          minimum: 0
+        errorCount:
+          type: integer
+          minimum: 0
+        targetLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        vocabularyUsed:
+          type: array
+          items:
+            type: string
+        corrections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Correction'
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Suggestion'
+
+    Correction:
+      type: object
+      required: [id, type, original, suggested, explanation, severity, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [grammar, spelling, vocabulary, punctuation, style]
+        original:
+          type: string
+        suggested:
+          type: string
+        explanation:
+          type: string
+          minLength: 10
+          maxLength: 200
+        severity:
+          type: string
+          enum: [critical, major, minor]
+        position:
+          type: object
+          required: [start, end]
+          properties:
+            start:
+              type: integer
+              minimum: 0
+            end:
+              type: integer
+              minimum: 0
+
+    Suggestion:
+      type: object
+      required: [id, type, text, context, level]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [vocabulary, phrase, response, question]
+        text:
+          type: string
+          minLength: 1
+          maxLength: 200
+        context:
+          type: string
+          minLength: 10
+          maxLength: 300
+        level:
+          $ref: '#/components/schemas/CEFRLevel'
+
+    ProgressMetrics:
+      type: object
+      required: [userId, currentLevel, totalConversations, totalMessages, totalTime]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        currentLevel:
+          $ref: '#/components/schemas/CEFRLevel'
+        levelHistory:
+          type: array
+          items:
+            type: object
+            required: [level, timestamp, confidence]
+            properties:
+              level:
+                $ref: '#/components/schemas/CEFRLevel'
+              timestamp:
+                type: string
+                format: date-time
+              confidence:
+                type: number
+                minimum: 0
+                maximum: 1
+        totalConversations:
+          type: integer
+          minimum: 0
+        totalMessages:
+          type: integer
+          minimum: 0
+        totalTime:
+          type: integer
+          minimum: 0
+          description: Total conversation time in seconds
+        vocabularyEncountered:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        vocabularyMastered:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        topicsDiscussed:
+          type: array
+          items:
+            type: string
+        lastActive:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CEFRLevel:
+      type: string
+      enum: [A1, A2, B1, B2, C1, C2]
+      description: Common European Framework of Reference for Languages level
+
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: BAD_REQUEST
+            message: Invalid request parameters
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: UNAUTHORIZED
+            message: Valid authentication token required
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: NOT_FOUND
+            message: Requested resource not found
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: RATE_LIMITED
+            message: Too many requests. Please try again later.
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per hour
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: string
+            format: date-time
+          description: Time when rate limit resets
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: INTERNAL_ERROR
+            message: An unexpected error occurred
