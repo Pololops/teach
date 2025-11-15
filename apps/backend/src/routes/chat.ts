@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { stream } from 'hono/streaming';
+import { streamSSE } from 'hono/streaming';
 import { ChatStreamRequestSchema } from '@teach/shared';
 import { getProvider } from '../lib/ai/index';
 
@@ -16,7 +16,7 @@ chat.post('/stream', async (c) => {
 
     const provider = getProvider(request.provider);
 
-    return stream(c, async (stream) => {
+    return streamSSE(c, async (stream) => {
       await stream.writeSSE({
         data: JSON.stringify({ type: 'start', provider: provider.name }),
       });

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { CEFRLevel } from '@teach/shared';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { useMessages } from '../hooks/useMessages';
 import { useChat } from '../hooks/useChat';
+import { useLevelDetection } from '../../level-detection/hooks/useLevelDetection';
+import { useUserStore } from '@/shared/stores/userStore';
 
 interface ChatContainerProps {
   conversationId: string;
@@ -11,14 +15,34 @@ interface ChatContainerProps {
 export function ChatContainer({ conversationId }: ChatContainerProps) {
   const queryClient = useQueryClient();
   const { data: messages = [], isLoading, error } = useMessages(conversationId);
+  const { currentUser, updateLevel } = useUserStore();
+  const [targetLevel, setTargetLevel] = useState<CEFRLevel>(
+    currentUser?.currentLevel || 'B1'
+  );
 
-  // For now, use a fixed CEFR level - will be dynamic later
-  const targetLevel = 'B1';
+  // Level detection
+  const { analyzeMessage } = useLevelDetection({
+    userId: currentUser?.id || '',
+    currentLevel: targetLevel,
+    onLevelChange: async (newLevel, confidence) => {
+      console.log(`Level changed to ${newLevel} (confidence: ${confidence})`);
+      setTargetLevel(newLevel);
+      if (currentUser) {
+        await updateLevel(newLevel);
+      }
+    },
+    minConfidence: 0.7,
+    minSamples: 5,
+  });
 
   const { sendMessage, streamingContent, isStreaming } = useChat({
     conversationId,
     targetLevel,
-    onMessageAdded: () => {
+    onMessageAdded: async (message) => {
+      // Analyze user messages for level detection
+      if (message.role === 'user') {
+        await analyzeMessage(message.content);
+      }
       // Invalidate messages query to refetch with new message
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     },
