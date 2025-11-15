@@ -1,0 +1,27 @@
+{
+  "name": "teach",
+  "version": "0.1.0",
+  "description": "AI English Learning Chat - Help French speakers learn English through natural AI-powered conversations",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=25.2.0",
+    "pnpm": ">=10.22.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "test:e2e": "playwright test",
+    "typecheck": "pnpm --recursive typecheck",
+    "lint": "pnpm --recursive lint"
+  },
+  "keywords": ["english", "learning", "ai", "chat", "education", "language"],
+  "author": "",
+  "license": "MPL 2.0",
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@axe-core/playwright": "^4.10.1",
+    "typescript": "^5.9.0"
+  }
+}
