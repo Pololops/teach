@@ -8,7 +8,7 @@ export function TypingIndicator() {
             <div className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
             <div className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce"></div>
           </div>
-          <span className="text-xs text-foreground/70">AI is thinking...</span>
+          <span className="text-xs text-foreground/70">...</span>
         </div>
       </div>
     </div>

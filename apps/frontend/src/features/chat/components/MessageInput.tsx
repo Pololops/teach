@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import { SendIcon } from 'lucide-react';
 
 interface MessageInputProps {
   onSend: (content: string) => void;
@@ -34,23 +35,21 @@ export function MessageInput({ onSend, disabled, placeholder = 'Type your messag
           placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none rounded-lg border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 max-h-32"
-          style={{
-            minHeight: '40px',
-            height: 'auto',
-          }}
+          className="flex-1 resize-none rounded-lg border border-border bg-background px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 min-h-12"
         />
         <button
+          type="button"
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="h-12 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          aria-label="Envoyer le message"
         >
-          Send
+          <SendIcon className="w-4 h-4" />
         </button>
       </div>
       <p className="text-xs text-muted-foreground mt-2">
-        Press <kbd className="px-1 py-0.5 text-xs bg-muted rounded">Enter</kbd> to send,{' '}
-        <kbd className="px-1 py-0.5 text-xs bg-muted rounded">Shift+Enter</kbd> for new line
+        Pressez <kbd className="px-1 py-0.5 text-xs bg-muted rounded">Enter</kbd> pour envoyer,{' '}
+        <kbd className="px-1 py-0.5 text-xs bg-muted rounded">Shift+Enter</kbd> pour une nouvelle ligne
       </p>
     </div>
   );

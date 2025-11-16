@@ -1,3 +1,7 @@
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - apps/*
+  - packages/*
+
+overrides:
+  ai@<5.0.52: '>=5.0.52'
+  jsondiffpatch@<0.7.2: '>=0.7.2'
