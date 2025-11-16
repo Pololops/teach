@@ -25,7 +25,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     userId: currentUser?.id || '',
     currentLevel: targetLevel,
     onLevelChange: async (newLevel, confidence) => {
-      console.log(`Level changed to ${newLevel} (confidence: ${confidence})`);
+      console.log(`Niveau changé pour ${newLevel} (confiance: ${confidence})`);
       setTargetLevel(newLevel);
       if (currentUser) {
         await updateLevel(newLevel);
@@ -51,7 +51,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Loading conversation...</div>
+        <div className="text-muted-foreground">Chargement de la conversation...</div>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   if (error) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-red-500">Error loading messages: {error.message}</div>
+        <div className="text-red-500">Erreur lors du chargement des messages: {error.message}</div>
       </div>
     );
   }
@@ -67,8 +67,8 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b border-border bg-background px-4 py-3">
-        <h2 className="text-lg font-semibold">Practice Chat</h2>
-        <p className="text-xs text-muted-foreground">Level: {targetLevel}</p>
+        <h2 className="text-lg font-semibold">Conversation</h2>
+        <p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>
       </div>
 
       <MessageList messages={messages} streamingContent={streamingContent} />
@@ -76,7 +76,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       <MessageInput
         onSend={sendMessage}
         disabled={isStreaming}
-        placeholder="Type your message in English..."
+        placeholder="Tapez votre message en anglais..."
       />
     </div>
   );

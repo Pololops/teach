@@ -40,18 +40,18 @@ export function MessageBubble({ message, showFeedback = true }: MessageBubblePro
           className={cn(
             'rounded-lg px-4 py-2',
             isUser
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-foreground'
+              ? 'bg-primary text-primary-foreground shadow-lg rounded-br-none'
+              : 'bg-muted text-muted-foreground shadow-lg rounded-bl-none'
           )}
         >
-          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-          <span className="text-xs opacity-70 mt-1 block">
-            {new Date(message.timestamp).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
+          <p className="text-sm whitespace-pre-wrap wrap-break-words">{message.content}</p>
         </div>
+        <span className="text-[0.6rem] text-right opacity-60 mt-1 mx-2 block">
+          {new Date(message.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </span>
 
         {/* Show corrections and suggestions for user messages */}
         {isUser && showFeedback && (

@@ -23,8 +23,8 @@ export function MessageList({ messages, streamingContent }: MessageListProps) {
       {messages.length === 0 && !streamingContent && (
         <div className="flex items-center justify-center h-full">
           <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Start a conversation</p>
-            <p className="text-sm mt-2">Type a message below to begin practicing English</p>
+            <p className="text-lg font-medium">Commencez une conversation</p>
+            <p className="text-sm mt-2">Tapez un message ci-dessous pour commencer à pratiquer l'anglais</p>
           </div>
         </div>
       )}
@@ -36,7 +36,7 @@ export function MessageList({ messages, streamingContent }: MessageListProps) {
       {streamingContent && (
         <div className="flex w-full mb-4 justify-start">
           <div className="max-w-[70%] rounded-lg px-4 py-2 bg-muted text-foreground">
-            <p className="text-sm whitespace-pre-wrap break-words">{streamingContent}</p>
+            <p className="text-sm whitespace-pre-wrap wrap-break-words">{streamingContent}</p>
           </div>
         </div>
       )}
