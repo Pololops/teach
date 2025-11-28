@@ -174,3 +174,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Typing indicator animation for shadcn-chatbot-kit */
+@keyframes typing-dot-bounce {
+  0%, 40% {
+    transform: translateY(0);
+  }
+  20% {
+    transform: translateY(-0.25rem);
+  }
+}
+
+.animate-typing-dot-bounce {
+  animation: typing-dot-bounce 1.25s ease-out infinite;
+}
