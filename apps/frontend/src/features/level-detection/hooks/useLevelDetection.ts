@@ -30,35 +30,6 @@ export function useLevelDetection({
   >([]);
 
   /**
-   * Analyze a user message and potentially adjust level
-   */
-  const analyzeMessage = useCallback(
-    async (messageText: string): Promise<LevelDetectionResult> => {
-      const analysis = cefrAnalyzer.analyze(messageText);
-
-      // Store analysis
-      setRecentAnalyses((prev) => [
-        ...prev.slice(-4), // Keep last 5 analyses
-        { level: analysis.suggestedLevel, confidence: analysis.confidence },
-      ]);
-      setMessageCount((prev) => prev + 1);
-
-      // Check if we should adjust level
-      const shouldAdjust = await checkLevelAdjustment(
-        analysis.suggestedLevel,
-        analysis.confidence
-      );
-
-      return {
-        suggestedLevel: analysis.suggestedLevel,
-        confidence: analysis.confidence,
-        shouldAdjust,
-      };
-    },
-    [userId, currentLevel, minConfidence, minSamples, recentAnalyses]
-  );
-
-  /**
    * Check if level should be adjusted based on recent analyses
    */
   const checkLevelAdjustment = useCallback(
@@ -109,6 +80,35 @@ export function useLevelDetection({
       return false;
     },
     [userId, currentLevel, minConfidence, minSamples, messageCount, recentAnalyses, onLevelChange]
+  );
+
+  /**
+   * Analyze a user message and potentially adjust level
+   */
+  const analyzeMessage = useCallback(
+    async (messageText: string): Promise<LevelDetectionResult> => {
+      const analysis = cefrAnalyzer.analyze(messageText);
+
+      // Store analysis
+      setRecentAnalyses((prev) => [
+        ...prev.slice(-4), // Keep last 5 analyses
+        { level: analysis.suggestedLevel, confidence: analysis.confidence },
+      ]);
+      setMessageCount((prev) => prev + 1);
+
+      // Check if we should adjust level
+      const shouldAdjust = await checkLevelAdjustment(
+        analysis.suggestedLevel,
+        analysis.confidence
+      );
+
+      return {
+        suggestedLevel: analysis.suggestedLevel,
+        confidence: analysis.confidence,
+        shouldAdjust,
+      };
+    },
+    [checkLevelAdjustment]
   );
 
   return {

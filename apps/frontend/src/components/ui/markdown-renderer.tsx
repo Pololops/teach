@@ -1,5 +1,5 @@
 import React, { Suspense } from "react"
-import Markdown from "react-markdown"
+import Markdown, { type Components } from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 import { cn } from "@/shared/lib/utils"
@@ -12,7 +12,7 @@ interface MarkdownRendererProps {
 export function MarkdownRenderer({ children }: MarkdownRendererProps) {
   return (
     <div className="space-y-3">
-      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS as any}>
+      <Markdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>
         {children}
       </Markdown>
     </div>
@@ -117,27 +117,34 @@ const CodeBlock = ({
   )
 }
 
-function childrenTakeAllStringContents(element: any): string {
+function childrenTakeAllStringContents(element: React.ReactNode): string {
   if (typeof element === "string") {
     return element
   }
 
-  if (element?.props?.children) {
+  if (
+    element &&
+    typeof element === "object" &&
+    "props" in element &&
+    element.props &&
+    typeof element.props === "object" &&
+    "children" in element.props
+  ) {
     const children = element.props.children
 
     if (Array.isArray(children)) {
       return children
-        .map((child: any) => childrenTakeAllStringContents(child))
+        .map((child: React.ReactNode) => childrenTakeAllStringContents(child))
         .join("")
     } else {
-      return childrenTakeAllStringContents(children)
+      return childrenTakeAllStringContents(children as React.ReactNode)
     }
   }
 
   return ""
 }
 
-const COMPONENTS = {
+const COMPONENTS: Partial<Components> = {
   h1: withClass("h1", "text-2xl font-semibold"),
   h2: withClass("h2", "font-semibold text-xl"),
   h3: withClass("h3", "font-semibold text-lg"),
@@ -185,11 +192,14 @@ const COMPONENTS = {
 }
 
 function withClass(Tag: keyof React.JSX.IntrinsicElements, classes: string) {
-  const Component = (props: any) => (
-    <Tag className={classes} {...props} />
-  )
-  Component.displayName = Tag
-  return Component
+  return ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => {
+    const Element = Tag as React.ElementType
+    return (
+      <Element className={classes} {...props}>
+        {children}
+      </Element>
+    )
+  }
 }
 
 export default MarkdownRenderer

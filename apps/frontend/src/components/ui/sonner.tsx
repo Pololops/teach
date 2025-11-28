@@ -40,4 +40,3 @@ function ToasterComponent({ ...props }: ToasterProps) {
 }
 
 export { ToasterComponent as Toaster }
-export { toast } from "sonner"

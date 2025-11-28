@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { CEFRLevel } from '@teach/shared';
 import { MessageList } from './MessageList';
-import { MessageInput } from './MessageInput';
+import { MessageInput } from '@/components/ui/message-input';
 import { useMessages } from '../hooks/useMessages';
 import { useTeachChat } from '../hooks/useTeachChat';
 import { useLevelDetection } from '../../level-detection/hooks/useLevelDetection';
@@ -51,6 +51,7 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     handleSubmit,
     isLoading,
     streamingContent,
+    contextStats,
     append,
   } = useTeachChat({
     conversationId,
@@ -71,8 +72,19 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b border-border bg-background px-4 py-3">
-        <h2 className="text-lg font-semibold">Conversation</h2>
-        <p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Conversation</h2>
+            <p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>
+          </div>
+          {contextStats && contextStats.truncated && (
+            <div className="text-xs text-muted-foreground">
+              <span title={`Total: ${contextStats.totalMessages} messages | Tokens: ~${contextStats.estimatedTokens}`}>
+                Context: {contextStats.includedMessages}/{contextStats.totalMessages} messages
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <MessageList
@@ -83,10 +95,10 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
 
       <form onSubmit={handleSubmit} className="border-t border-border bg-background px-4 py-3">
         <MessageInput
-          value={input}
-          onChange={handleInputChange}
           isGenerating={isLoading}
           placeholder="Tapez votre message en anglais..."
+          value={input}
+          onChange={handleInputChange}
         />
       </form>
     </div>
