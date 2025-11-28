@@ -7,6 +7,7 @@ import { addMessage } from '@/shared/lib/storage/entities/message';
 import { useUIStore } from '@/shared/stores/uiStore';
 import { useMessages } from './useMessages';
 import { toShadcnMessages, type ShadcnMessage } from '../adapters/messageAdapter';
+import { buildContextWindow, appendToContext, type ContextWindowStats } from '../utils/contextManager';
 
 /**
  * Options for useTeachChat hook
@@ -38,6 +39,7 @@ export function useTeachChat({
   const [input, setInput] = useState('');
   const [streamingContent, setStreamingContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [contextStats, setContextStats] = useState<ContextWindowStats | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const { setTyping } = useUIStore();
@@ -97,13 +99,20 @@ export function useTeachChat({
           onMessageAdded({ role: userMessage.role, content: userMessage.content });
         }
 
+        // Build smart context window from conversation history
+        const { context, stats } = buildContextWindow(dbMessages);
+        setContextStats(stats);
+
+        // Append the new user message to context
+        const contextWithNewMessage = appendToContext(context, { role, content });
+
         // Stream AI response
         let fullResponse = '';
         setStreamingContent('');
         setTyping(true);
 
         await streamChatResponse({
-          messages: [{ role, content }],
+          messages: contextWithNewMessage,
           targetLevel,
           onStart: () => {
             // Response started
@@ -155,7 +164,7 @@ export function useTeachChat({
         abortControllerRef.current = null;
       }
     },
-    [conversationId, targetLevel, isLoading, setTyping, queryClient, onFinish, onUserMessage, onMessageAdded]
+    [conversationId, targetLevel, isLoading, setTyping, queryClient, onFinish, onUserMessage, onMessageAdded, dbMessages]
   );
 
   /**
@@ -191,6 +200,7 @@ export function useTeachChat({
     handleSubmit,
     isLoading: isLoading || isLoadingMessages,
     streamingContent,
+    contextStats,
     stop,
     append,
   };
