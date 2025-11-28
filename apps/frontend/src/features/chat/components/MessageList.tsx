@@ -1,47 +1,91 @@
 import { useEffect, useRef } from 'react';
-import type { Message } from '@teach/shared';
-import { MessageBubble } from './MessageBubble';
-import { TypingIndicator } from './TypingIndicator';
+import { TypingIndicator } from '@/components/ui/typing-indicator';
+import { PromptSuggestions } from '@/components/ui/prompt-suggestions';
+import { TeachChatMessage } from './TeachChatMessage';
 import { useUIStore } from '@/shared/stores/uiStore';
+import { toShadcnMessages, type ShadcnMessage } from '../adapters/messageAdapter';
+import type { Message } from '@teach/shared';
 
 interface MessageListProps {
   messages: Message[];
   streamingContent?: string;
+  onSendPrompt?: (content: string) => void;
 }
 
-export function MessageList({ messages, streamingContent }: MessageListProps) {
+/**
+ * MessageList - Custom message list with TeachChatMessage rendering
+ *
+ * Features:
+ * - Renders each message with TeachChatMessage (includes feedback)
+ * - Auto-scrolls to newest messages
+ * - Shows typing indicator and streaming content
+ * - Shows prompt suggestions in empty state
+ * - Uses shadcn spacing and structure
+ */
+export function MessageList({ messages, streamingContent, onSendPrompt }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isTyping } = useUIStore();
+
+  // Convert to shadcn format
+  const shadcnMessages: ShadcnMessage[] = toShadcnMessages(messages);
+
+  // Add streaming message if active
+  const displayMessages = streamingContent
+    ? [
+        ...shadcnMessages,
+        {
+          id: 'streaming',
+          role: 'assistant' as const,
+          content: streamingContent,
+          createdAt: new Date(),
+        },
+      ]
+    : shadcnMessages;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent]);
 
+  // Starter prompts for empty state
+  const starterPrompts = [
+    "Let's talk about my hobbies",
+    "I want to practice ordering food",
+    "Help me prepare for a job interview",
+    "Let's discuss current events"
+  ];
+
+  const handlePromptClick = (content: string) => {
+    if (onSendPrompt) {
+      onSendPrompt(content);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6">
-      {messages.length === 0 && !streamingContent && (
+      {displayMessages.length === 0 ? (
         <div className="flex items-center justify-center h-full">
-          <div className="text-center text-muted-foreground">
-            <p className="text-lg font-medium">Commencez une conversation</p>
-            <p className="text-sm mt-2">Tapez un message ci-dessous pour commencer à pratiquer l'anglais</p>
-          </div>
+          <PromptSuggestions
+            label="Commencez une conversation"
+            append={({ content }) => handlePromptClick(content)}
+            suggestions={starterPrompts}
+          />
+        </div>
+      ) : (
+        <div className="space-y-4 overflow-visible">
+          {displayMessages.map((message) => (
+            <TeachChatMessage
+              key={message.id}
+              id={message.id}
+              role={message.role}
+              content={message.content}
+              createdAt={message.createdAt}
+              showFeedback={message.id !== 'streaming'}
+            />
+          ))}
+          {isTyping && !streamingContent && <TypingIndicator />}
         </div>
       )}
-
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} />
-      ))}
-
-      {streamingContent && (
-        <div className="flex w-full mb-4 justify-start">
-          <div className="max-w-[70%] rounded-lg px-4 py-2 bg-muted text-foreground">
-            <p className="text-sm whitespace-pre-wrap wrap-break-words">{streamingContent}</p>
-          </div>
-        </div>
-      )}
-
-      {isTyping && !streamingContent && <TypingIndicator />}
 
       <div ref={messagesEndRef} />
     </div>

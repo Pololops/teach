@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import type { CEFRLevel } from '@teach/shared';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { useMessages } from '../hooks/useMessages';
-import { useChat } from '../hooks/useChat';
+import { useTeachChat } from '../hooks/useTeachChat';
 import { useLevelDetection } from '../../level-detection/hooks/useLevelDetection';
 import { useUserStore } from '@/shared/stores/userStore';
 
@@ -12,9 +11,16 @@ interface ChatContainerProps {
   conversationId: string;
 }
 
+/**
+ * ChatContainer - Main chat interface using shadcn-chatbot-kit components
+ *
+ * Features:
+ * - Uses useTeachChat hook (Vercel AI SDK interface)
+ * - Integrates level detection for CEFR assessment
+ * - Manages conversation state and streaming
+ * - Provides loading and error states
+ */
 export function ChatContainer({ conversationId }: ChatContainerProps) {
-  const queryClient = useQueryClient();
-  const { data: messages = [], isLoading, error } = useMessages(conversationId);
   const { currentUser, updateLevel } = useUserStore();
   const [targetLevel, setTargetLevel] = useState<CEFRLevel>(
     currentUser?.currentLevel || 'B1'
@@ -35,7 +41,18 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     minSamples: 5,
   });
 
-  const { sendMessage, streamingContent, isStreaming } = useChat({
+  // Fetch raw messages from IndexedDB
+  const { data: messages = [] } = useMessages(conversationId);
+
+  // Use the unified chat hook for input/submit handling
+  const {
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    streamingContent,
+    append,
+  } = useTeachChat({
     conversationId,
     targetLevel,
     onMessageAdded: async (message) => {
@@ -43,26 +60,13 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       if (message.role === 'user') {
         await analyzeMessage(message.content);
       }
-      // Invalidate messages query to refetch with new message
-      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-muted-foreground">Chargement de la conversation...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-red-500">Erreur lors du chargement des messages: {error.message}</div>
-      </div>
-    );
-  }
+  // Handle prompt suggestion clicks
+  const handlePromptClick = async (content: string) => {
+    await append({ role: 'user', content });
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -71,13 +75,20 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
         <p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>
       </div>
 
-      <MessageList messages={messages} streamingContent={streamingContent} />
-
-      <MessageInput
-        onSend={sendMessage}
-        disabled={isStreaming}
-        placeholder="Tapez votre message en anglais..."
+      <MessageList
+        messages={messages}
+        streamingContent={streamingContent}
+        onSendPrompt={handlePromptClick}
       />
+
+      <form onSubmit={handleSubmit} className="border-t border-border bg-background px-4 py-3">
+        <MessageInput
+          value={input}
+          onChange={handleInputChange}
+          isGenerating={isLoading}
+          placeholder="Tapez votre message en anglais..."
+        />
+      </form>
     </div>
   );
 }
