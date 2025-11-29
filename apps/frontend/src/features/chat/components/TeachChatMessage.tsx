@@ -8,6 +8,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import type { MessageMetadata, AICorrection } from '@teach/shared';
+import { processEmojiMessage } from '@/shared/lib/emojiUtils';
 
 export interface TeachChatMessageProps {
   id: string;
@@ -24,12 +25,16 @@ function MessageBubbleWithHighlights({
   content,
   changes,
   createdAt,
-  showTimeStamp
+  showTimeStamp,
+  isEmojiOnly = false,
+  emojis = [],
 }: {
   content: string;
   changes: AICorrection['changes'];
   createdAt?: Date;
   showTimeStamp?: boolean;
+  isEmojiOnly?: boolean;
+  emojis?: string[];
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -50,56 +55,65 @@ function MessageBubbleWithHighlights({
 
   return (
     <div className="flex flex-col items-end group/message relative wrap-break-word text-sm sm:max-w-[70%]">
-      {/* Message bubble */}
-      <div className="rounded-lg p-3 bg-primary text-primary-foreground duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-right">
-        {segments.map((segment, index) => {
-          if (segment.hasError && segment.changeIndex !== undefined) {
-            const change = sortedChanges[segment.changeIndex];
-            return (
-              <Popover
-                key={index}
-                open={hoveredIndex === index}
-                onOpenChange={(open) => setHoveredIndex(open ? index : null)}
-              >
-                <PopoverTrigger asChild>
-                  <span
-                    className="border-b-2 border-dotted border-destructive! pb-px cursor-help"
-                    onMouseEnter={() => setHoveredIndex(index)}
-                    onMouseLeave={() => setHoveredIndex(null)}
-                  >
-                    {segment.text}
-                  </span>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto max-w-xs shadow-lg" side="top" align="start">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                        {change.type === 'grammar' ? 'grammaire' :
-                         change.type === 'spelling' ? 'orthographe' :
-                         change.type === 'vocabulary' ? 'vocabulaire' :
-                         change.type === 'conjugation' ? 'conjugaison' :
-                         change.type}
-                      </span>
+      {isEmojiOnly ? (
+        // Emoji-only: no bubble styling, flex with gap
+        <div className="flex gap-1 text-3xl leading-relaxed duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-right">
+          {emojis.map((emoji, index) => (
+            <span key={index}>{emoji}</span>
+          ))}
+        </div>
+      ) : (
+        // Regular message with error highlights
+        <div className="rounded-lg p-3 bg-primary text-primary-foreground duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-right shadow-sm">
+          {segments.map((segment, index) => {
+            if (segment.hasError && segment.changeIndex !== undefined) {
+              const change = sortedChanges[segment.changeIndex];
+              return (
+                <Popover
+                  key={index}
+                  open={hoveredIndex === index}
+                  onOpenChange={(open) => setHoveredIndex(open ? index : null)}
+                >
+                  <PopoverTrigger asChild>
+                    <span
+                      className="border-b-2 border-dotted border-destructive! pb-px cursor-help"
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
+                    >
+                      {segment.text}
+                    </span>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto max-w-xs shadow-lg" side="top" align="start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                          {change.type === 'grammar' ? 'grammaire' :
+                            change.type === 'spelling' ? 'orthographe' :
+                              change.type === 'vocabulary' ? 'vocabulaire' :
+                                change.type === 'conjugation' ? 'conjugaison' :
+                                  change.type}
+                        </span>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm">
+                          <span className="font-semibold">Original :</span>{' '}
+                          <span className="line-through text-muted-foreground">{change.original}</span>
+                        </p>
+                        <p className="text-sm">
+                          <span className="font-semibold">Correction :</span>{' '}
+                          <span className="text-green-600 font-medium">{change.corrected}</span>
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm">
-                        <span className="font-semibold">Original :</span>{' '}
-                        <span className="line-through text-muted-foreground">{change.original}</span>
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-semibold">Correction :</span>{' '}
-                        <span className="text-green-600 font-medium">{change.corrected}</span>
-                      </p>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            );
-          }
+                  </PopoverContent>
+                </Popover>
+              );
+            }
 
-          return <span key={index}>{segment.text}</span>;
-        })}
-      </div>
+            return <span key={index}>{segment.text}</span>;
+          })}
+        </div>
+      )}
 
       {showTimeStamp && createdAt ? (
         <time
@@ -127,6 +141,12 @@ export function TeachChatMessage({
   createdAt,
   metadata,
 }: TeachChatMessageProps) {
+  // Detect emoji-only messages and get emoji array
+  const { isEmojiOnly, emojis } = useMemo(
+    () => processEmojiMessage(content),
+    [content]
+  );
+
   // Show AI corrections only for user messages when available
   const hasCorrection = role === 'user' && metadata?.aiCorrection;
 
@@ -145,6 +165,8 @@ export function TeachChatMessage({
           changes={metadata.aiCorrection.changes}
           createdAt={undefined}
           showTimeStamp={false}
+          isEmojiOnly={isEmojiOnly}
+          emojis={emojis}
         />
 
         {/* Corrected message - between bubble and timestamp */}

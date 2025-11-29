@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { Ban, Code2 } from "lucide-react"
 
 import { cn } from "@/shared/lib/utils"
+import { processEmojiMessage } from "@/shared/lib/emojiUtils"
 import {
   Collapsible,
   CollapsibleContent,
@@ -14,7 +15,7 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer"
 import { ChevronRightIcon, ReloadIcon, RocketIcon } from "@radix-ui/react-icons"
 
 const chatBubbleVariants = cva(
-  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%]",
+  "group/message relative break-words rounded-lg p-3 text-sm sm:max-w-[70%] shadow-sm",
   {
     variants: {
       isUser: {
@@ -158,6 +159,12 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
     })
   }, [experimental_attachments])
 
+  // Detect emoji-only messages and get individual emojis
+  const { isEmojiOnly, emojis } = useMemo(
+    () => processEmojiMessage(content),
+    [content]
+  )
+
   const isUser = role === "user"
 
   const formattedTime = createdAt?.toLocaleTimeString("en-US", {
@@ -178,9 +185,25 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
           </div>
         ) : null}
 
-        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-          <MarkdownRenderer>{content}</MarkdownRenderer>
-        </div>
+        {isEmojiOnly ? (
+          // Emoji-only: no bubble, just large emojis with gap
+          <div
+            className={cn(
+              "flex gap-1 text-4xl leading-relaxed text-shadow-sm",
+              animation !== "none" && "duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-right"
+            )}
+            aria-label={content}
+          >
+            {emojis.map((emoji, index) => (
+              <span key={index}>{emoji}</span>
+            ))}
+          </div>
+        ) : (
+          // Regular message: with bubble
+          <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+            <MarkdownRenderer>{content}</MarkdownRenderer>
+          </div>
+        )}
 
         {showTimeStamp && createdAt ? (
           <time
@@ -200,6 +223,10 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
   if (parts && parts.length > 0) {
     return parts.map((part, index) => {
       if (part.type === "text") {
+        // Check if this text part is emoji-only
+        const { isEmojiOnly: partIsEmojiOnly, emojis: partEmojis } =
+          processEmojiMessage(part.text)
+
         return (
           <div
             className={cn(
@@ -208,14 +235,33 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
             )}
             key={`text-${index}`}
           >
-            <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-              <MarkdownRenderer>{part.text}</MarkdownRenderer>
-              {actions ? (
-                <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
-                  {actions}
-                </div>
-              ) : null}
-            </div>
+            {partIsEmojiOnly ? (
+              // Emoji-only: no bubble, just large emojis with gap
+              <div
+                className={cn(
+                  "flex gap-1 text-4xl leading-relaxed text-shadow-sm",
+                  animation !== "none" &&
+                    isUser
+                    ? "duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-right"
+                    : "duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-left"
+                )}
+                aria-label={part.text}
+              >
+                {partEmojis.map((emoji, emojiIndex) => (
+                  <span key={emojiIndex}>{emoji}</span>
+                ))}
+              </div>
+            ) : (
+              // Regular message: with bubble
+              <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+                <MarkdownRenderer>{part.text}</MarkdownRenderer>
+                {actions ? (
+                  <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+                    {actions}
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {showTimeStamp && createdAt ? (
               <time
@@ -250,14 +296,30 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({
 
   return (
     <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-      <div className={cn(chatBubbleVariants({ isUser, animation }))}>
-        <MarkdownRenderer>{content}</MarkdownRenderer>
-        {actions ? (
-          <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
-            {actions}
-          </div>
-        ) : null}
-      </div>
+      {isEmojiOnly ? (
+        // Emoji-only: no bubble, just large emojis with gap
+        <div
+          className={cn(
+            "flex gap-1 text-4xl leading-relaxed text-shadow-sm",
+            animation !== "none" && "duration-300 animate-in fade-in-0 zoom-in-75 origin-bottom-left"
+          )}
+          aria-label={content}
+        >
+          {emojis.map((emoji, index) => (
+            <span key={index}>{emoji}</span>
+          ))}
+        </div>
+      ) : (
+        // Regular message: with bubble
+        <div className={cn(chatBubbleVariants({ isUser, animation }))}>
+          <MarkdownRenderer>{content}</MarkdownRenderer>
+          {actions ? (
+            <div className="absolute -bottom-4 right-2 flex space-x-1 rounded-lg border bg-background p-1 text-foreground opacity-0 transition-opacity group-hover/message:opacity-100">
+              {actions}
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {showTimeStamp && createdAt ? (
         <time
