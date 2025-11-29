@@ -45,3 +45,4 @@ playwright/.cache/
 *.tmp
 .cache/
 .temp/
+node_modules

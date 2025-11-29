@@ -148,27 +148,32 @@ teach/
 ## 🌟 Key Features
 
 ### 💬 Natural AI Conversations
+
 - **Lightning Fast**: Sub-2-second responses maintain conversation flow
 - **Context Aware**: Remembers what you've discussed across messages
 - **Human-Like**: Responses feel conversational, not scripted
 
 ### 📈 Intelligent Adaptation
+
 - **CEFR Level Detection**: Automatic assessment from A1 (beginner) to C2 (mastery)
 - **Dynamic Difficulty**: Vocabulary and complexity adjust in real-time
 - **No Manual Settings**: Just start chatting — the AI figures it out
 
 ### ✏️ Inline Learning
+
 - **Grammar Corrections**: Subtle colored underlining in your messages
 - **On-Demand Explanations**: Hover or click to learn more
 - **Non-Intrusive**: Never interrupts the conversation flow
 
 ### 📊 Progress Tracking
+
 - **Vocabulary Growth**: See new words you've encountered
 - **Time Invested**: Track total conversation time
 - **Level Progression**: Watch your CEFR level improve over time
 - **Visual Insights**: Beautiful charts and milestones
 
 ### 🔐 Privacy-First
+
 - **Local-First Storage**: All data stays in your browser (IndexedDB)
 - **No Authentication**: Use anonymously — no account required
 - **No Tracking**: Your conversations are yours alone
@@ -216,6 +221,7 @@ pnpm build
 
 1. **Create feature module**: `apps/frontend/src/features/my-feature/`
 2. **Structure it properly**:
+
    ```text
    my-feature/
    ├── components/       # UI components
@@ -224,6 +230,7 @@ pnpm build
    ├── types/            # TypeScript types
    └── index.ts          # Public API exports
    ```
+
 3. **Follow the rules**:
    - Max 7 props per component
    - Max 50 lines per function
@@ -254,6 +261,7 @@ pnpm build
 ## 🎯 Roadmap
 
 ### ✅ MVP (Current)
+
 - [x] Natural AI conversations
 - [x] Automatic difficulty adaptation
 - [x] Inline grammar corrections
@@ -262,6 +270,7 @@ pnpm build
 - [x] Mobile-responsive design
 
 ### 🚧 Coming Soon
+
 - [ ] Voice conversations (speech-to-text/text-to-speech)
 - [ ] Topic-specific scenarios (travel, business, casual)
 - [ ] Vocabulary flashcards from your conversations
@@ -270,6 +279,7 @@ pnpm build
 - [ ] Optional cloud sync (multi-device)
 
 ### 🔮 Future Vision
+
 - [ ] Multiple language support (beyond English)
 - [ ] Peer-to-peer conversation practice
 - [ ] Teacher dashboards for classroom use
@@ -303,6 +313,7 @@ We welcome contributions! Teach is built on principles of:
 **Mozilla Public License 2.0 (MPL-2.0)**
 
 This project is licensed under the MPL-2.0 — a copyleft license that:
+
 - ✅ Allows commercial use
 - ✅ Allows modification and distribution
 - ✅ Provides patent protection
@@ -341,4 +352,3 @@ Start your English learning journey today — no sign-up required.
 [Get Started](#-quick-start) · [View Docs](./specs/001-teach/) · [Report Bug](../../issues)
 
 </div>
-
