@@ -80,7 +80,7 @@ export function MessageList({ messages, streamingContent, onSendPrompt }: Messag
               role={message.role}
               content={message.content}
               createdAt={message.createdAt}
-              showFeedback={message.id !== 'streaming'}
+              metadata={message.metadata}
             />
           ))}
           {isTyping && !streamingContent && <TypingIndicator />}

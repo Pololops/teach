@@ -42,12 +42,23 @@ export async function getMessage(id: string): Promise<Message | undefined> {
 
 /**
  * Update message metadata (e.g., add corrections, suggestions)
+ * Merges with existing metadata instead of replacing
  */
 export async function updateMessageMetadata(
   id: string,
-  metadata: MessageMetadata
+  metadata: Partial<MessageMetadata>
 ): Promise<void> {
-  await db.messages.update(id, { metadata });
+  const message = await db.messages.get(id);
+  if (!message) {
+    throw new Error(`Message ${id} not found`);
+  }
+
+  await db.messages.update(id, {
+    metadata: {
+      ...message.metadata,
+      ...metadata,
+    },
+  });
 }
 
 /**

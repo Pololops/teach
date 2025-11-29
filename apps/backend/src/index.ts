@@ -6,6 +6,7 @@ import 'dotenv/config';
 
 import health from './routes/health';
 import chat from './routes/chat';
+import corrector from './routes/corrector';
 
 const app = new Hono();
 
@@ -22,6 +23,7 @@ app.use(
 // Routes
 app.route('/api/health', health);
 app.route('/api/chat', chat);
+app.route('/api/correct', corrector);
 
 // Root
 app.get('/', (c) =>

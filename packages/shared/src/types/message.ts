@@ -69,6 +69,27 @@ export const SuggestionSchema = z.object({
 export type Suggestion = z.infer<typeof SuggestionSchema>;
 
 /**
+ * AI-driven correction change
+ */
+export const AICorrectionChangeSchema = z.object({
+  start: z.number().int().min(0),
+  end: z.number().int().min(0),
+  original: z.string().min(1),
+  corrected: z.string().min(1),
+  type: z.enum(['spelling', 'grammar', 'vocabulary', 'conjugation']),
+});
+export type AICorrectionChange = z.infer<typeof AICorrectionChangeSchema>;
+
+/**
+ * AI-driven correction data
+ */
+export const AICorrectionSchema = z.object({
+  correctedText: z.string(),
+  changes: z.array(AICorrectionChangeSchema),
+});
+export type AICorrection = z.infer<typeof AICorrectionSchema>;
+
+/**
  * Message metadata for analysis and feedback
  */
 export const MessageMetadataSchema = z.object({
@@ -86,6 +107,9 @@ export const MessageMetadataSchema = z.object({
   // For both
   corrections: z.array(CorrectionSchema).optional(),
   suggestions: z.array(SuggestionSchema).optional(),
+
+  // AI-driven correction (replaces rule-based corrections)
+  aiCorrection: AICorrectionSchema.optional(),
 });
 export type MessageMetadata = z.infer<typeof MessageMetadataSchema>;
 

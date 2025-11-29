@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import type { ChatMessage, CEFRLevel } from '@teach/shared';
-import { AIProvider, SYSTEM_PROMPTS } from './base';
+import { AIProvider } from './base';
+import { AI_CONVERSATION_PROMPTS } from '../../../prompts/aiConversation';
 
 /**
  * OpenAI AI Provider implementation
@@ -22,7 +23,7 @@ export class OpenAIProvider implements AIProvider {
   }
 
   getSystemPrompt(targetLevel: CEFRLevel): string {
-    return SYSTEM_PROMPTS[targetLevel];
+    return AI_CONVERSATION_PROMPTS[targetLevel];
   }
 
   async *streamResponse(

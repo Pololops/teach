@@ -3,7 +3,8 @@ import type { FormEvent, ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CEFRLevel, MessageRole } from '@teach/shared';
 import { streamChatResponse } from '@/shared/services/chatService';
-import { addMessage } from '@/shared/lib/storage/entities/message';
+import { correctMessage } from '@/shared/services/correctorService';
+import { addMessage, updateMessageMetadata } from '@/shared/lib/storage/entities/message';
 import { useUIStore } from '@/shared/stores/uiStore';
 import { useMessages } from './useMessages';
 import { toShadcnMessages, type ShadcnMessage } from '../adapters/messageAdapter';
@@ -97,6 +98,26 @@ export function useTeachChat({
         }
         if (onMessageAdded) {
           onMessageAdded({ role: userMessage.role, content: userMessage.content });
+        }
+
+        // Fire-and-forget AI corrector (only for user messages, non-blocking)
+        if (role === 'user') {
+          correctMessage(content)
+            .then(async (correction) => {
+              if (correction?.hasErrors && correction.changes && correction.changes.length > 0) {
+                await updateMessageMetadata(userMessage.id, {
+                  aiCorrection: {
+                    correctedText: correction.correctedText || content,
+                    changes: correction.changes,
+                  },
+                });
+                await queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+              }
+            })
+            .catch((error) => {
+              // Silent failure - corrector errors don't interrupt conversation
+              console.error('Corrector error (non-critical):', error);
+            });
         }
 
         // Build smart context window from conversation history

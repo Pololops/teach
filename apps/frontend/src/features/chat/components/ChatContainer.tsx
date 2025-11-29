@@ -99,6 +99,10 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
           placeholder="Tapez votre message en anglais..."
           value={input}
           onChange={handleInputChange}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
         />
       </form>
     </div>

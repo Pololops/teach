@@ -1,4 +1,4 @@
-import type { Message, MessageRole } from '@teach/shared';
+import type { Message, MessageRole, MessageMetadata } from '@teach/shared';
 
 /**
  * Shadcn ChatMessage interface
@@ -9,6 +9,7 @@ export interface ShadcnMessage {
   role: 'user' | 'assistant';
   content: string;
   createdAt?: Date;
+  metadata?: MessageMetadata;
 }
 
 /**
@@ -22,6 +23,7 @@ export function toShadcnMessage(message: Message): ShadcnMessage {
     role: message.role === 'system' ? 'assistant' : message.role,
     content: message.content,
     createdAt: new Date(message.timestamp),
+    metadata: message.metadata,
   };
 }
 

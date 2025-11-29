@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CEFRLevelSchema } from './cefr.js';
-import { ChatMessageSchema } from './message.js';
+import { ChatMessageSchema, AICorrectionChangeSchema } from './message.js';
 
 /**
  * AI Provider types
@@ -51,3 +51,21 @@ export const HealthResponseSchema = z.object({
   timestamp: z.string(),
 });
 export type HealthResponse = z.infer<typeof HealthResponseSchema>;
+
+/**
+ * Correct message request
+ */
+export const CorrectMessageRequestSchema = z.object({
+  text: z.string().min(1).max(5000),
+});
+export type CorrectMessageRequest = z.infer<typeof CorrectMessageRequestSchema>;
+
+/**
+ * Correct message response
+ */
+export const CorrectMessageResponseSchema = z.object({
+  hasErrors: z.boolean(),
+  correctedText: z.string().optional(),
+  changes: z.array(AICorrectionChangeSchema).optional(),
+});
+export type CorrectMessageResponse = z.infer<typeof CorrectMessageResponseSchema>;
