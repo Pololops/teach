@@ -7,6 +7,8 @@ import 'dotenv/config';
 import health from './routes/health';
 import chat from './routes/chat';
 import corrector from './routes/corrector';
+import game from './routes/game';
+import { gameService } from './lib/ai/gameService';
 
 const app = new Hono();
 
@@ -24,6 +26,7 @@ app.use(
 app.route('/api/health', health);
 app.route('/api/chat', chat);
 app.route('/api/correct', corrector);
+app.route('/api/game', game);
 
 // Root
 app.get('/', (c) =>
@@ -34,7 +37,15 @@ app.get('/', (c) =>
   })
 );
 
-// Start server
+// Initialize game service with pre-generated questions in the background
+async function initializeServices() {
+  // Start generating questions in the background (don't block server startup)
+  gameService
+    .initialize()
+    .catch((error) => console.error('Background initialization error:', error));
+}
+
+// Start server immediately
 const port = Number(process.env.PORT) || 3000;
 
 console.log(`🚀 Teach API server starting on http://localhost:${port}`);
@@ -43,3 +54,6 @@ serve({
   fetch: app.fetch,
   port,
 });
+
+// Initialize services in background after server starts
+initializeServices();

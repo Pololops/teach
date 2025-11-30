@@ -5,3 +5,4 @@ export * from './types/conversation.js';
 export * from './types/user.js';
 export * from './types/progress.js';
 export * from './types/api.js';
+export * from './types/game.js';

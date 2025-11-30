@@ -1,0 +1,157 @@
+import { ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useNavigationStore } from '@/shared/stores/navigationStore';
+import { getUser } from '@/shared/lib/storage/entities/user';
+import { useGameSession } from '../hooks/useGameSession';
+import { EmojiDisplay } from './EmojiDisplay';
+import { AnswerButtons } from './AnswerButtons';
+import { ResultOverlay } from './ResultOverlay';
+import { GameStats } from './GameStats';
+
+/**
+ * Main game container managing the emoji guessing game
+ */
+export function GameContainer() {
+  const { navigateTo } = useNavigationStore();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userLevel, setUserLevel] = useState<'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'>('B1');
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Load user on mount
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const user = await getUser();
+        setUserId(user.id);
+        setUserLevel(user.currentLevel);
+      } catch (err) {
+        setInitError(err instanceof Error ? err.message : 'Failed to load user');
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+    loadUser();
+  }, []);
+
+  const {
+    session,
+    question,
+    attempts,
+    maxAttempts,
+    isLoading,
+    error,
+    showResult,
+    submitAnswer,
+    endGame,
+  } = useGameSession({
+    userId: userId || '',
+    level: userLevel,
+  });
+
+  const handleBack = async () => {
+    await endGame();
+    navigateTo('home');
+  };
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-muted-foreground">Chargement...</div>
+      </div>
+    );
+  }
+
+  if (initError || !userId) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
+        <div className="text-red-500">Error: {initError || 'User not found'}</div>
+        <Button onClick={() => navigateTo('home')} variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour à l'accueil
+        </Button>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
+        <div className="text-red-500">Error: {error}</div>
+        <Button onClick={handleBack} variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Retour à l'accueil
+        </Button>
+      </div>
+    );
+  }
+
+  const isWaitingForNextQuestion = showResult === 'correct' || (showResult === 'wrong' && attempts >= maxAttempts);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Header */}
+      <div className="border-b border-border bg-background px-4 py-3">
+        <div className="flex items-center justify-between max-w-4xl mx-auto">
+          <Button
+            onClick={handleBack}
+            variant="ghost"
+            size="sm"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Accueil
+          </Button>
+          <h2 className="text-lg font-semibold">Jeu des émojis</h2>
+          <div className="w-20" /> {/* Spacer for centering */}
+        </div>
+      </div>
+
+      {/* Main Game Area */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
+        {isLoading && !question ? (
+          <div className="text-muted-foreground">Chargement...</div>
+        ) : question ? (
+          <>
+            {/* Stats */}
+            {session && <GameStats session={session} />}
+
+            {/* Emoji Display */}
+            <EmojiDisplay
+              emoji={question.emoji}
+              shake={showResult === 'wrong' && attempts < maxAttempts}
+            />
+
+            {/* Attempts Indicator */}
+            <div className="flex gap-2">
+              {Array.from({ length: maxAttempts }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-3 h-3 rounded-full ${index < attempts
+                      ? 'bg-red-500'
+                      : 'bg-muted'
+                    }`}
+                />
+              ))}
+            </div>
+
+            {/* Answer Buttons */}
+            <AnswerButtons
+              correctAnswer={question.correctAnswer}
+              wrongAnswers={question.wrongAnswers}
+              onAnswer={submitAnswer}
+              disabled={isLoading || isWaitingForNextQuestion}
+            />
+          </>
+        ) : null}
+      </div>
+
+      {/* Result Overlay */}
+      <ResultOverlay
+        result={showResult === 'correct' ? 'correct' : 'wrong'}
+        show={isWaitingForNextQuestion}
+      />
+    </div>
+  );
+}
+

@@ -90,7 +90,7 @@ const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
         <div className="flex w-full items-center space-x-2">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted p-0.5">
             <div className="h-full w-full overflow-hidden text-[6px] leading-none text-muted-foreground">
-              {preview || "Loading..."}
+              {preview || "Chargement..."}
             </div>
           </div>
           <span className="w-full truncate text-muted-foreground">
@@ -103,7 +103,7 @@ const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
             className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full border bg-background"
             type="button"
             onClick={onRemove}
-            aria-label="Remove attachment"
+            aria-label="Supprimer l'attachement"
           >
             <Cross2Icon className="h-2.5 w-2.5" />
           </button>
@@ -139,7 +139,7 @@ const GenericFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
             className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full border bg-background"
             type="button"
             onClick={onRemove}
-            aria-label="Remove attachment"
+            aria-label="Supprimer l'attachement"
           >
             <Cross2Icon className="h-2.5 w-2.5" />
           </button>

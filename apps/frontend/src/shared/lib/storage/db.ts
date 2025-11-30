@@ -4,6 +4,8 @@ import type {
   Conversation,
   Message,
   ProgressMetrics,
+  GameSession,
+  GameAttempt,
 } from '@teach/shared';
 
 /**
@@ -16,6 +18,8 @@ export class TeachDB extends Dexie {
   conversations!: EntityTable<Conversation, 'id'>;
   messages!: EntityTable<Message, 'id'>;
   progressMetrics!: EntityTable<ProgressMetrics, 'userId'>;
+  gameSessions!: EntityTable<GameSession, 'id'>;
+  gameAttempts!: EntityTable<GameAttempt, 'id'>;
 
   constructor() {
     super('TeachDB');
@@ -33,6 +37,19 @@ export class TeachDB extends Dexie {
 
       // Progress metrics table: one record per user
       progressMetrics: 'userId, lastActive',
+    });
+
+    // Schema version 2: Add game tables
+    this.version(2).stores({
+      // Keep existing tables
+      users: 'id, createdAt',
+      conversations: 'id, userId, status, createdAt, updatedAt, [userId+status]',
+      messages: 'id, conversationId, timestamp, [conversationId+timestamp]',
+      progressMetrics: 'userId, lastActive',
+
+      // Game tables
+      gameSessions: 'id, userId, startedAt, endedAt, [userId+startedAt]',
+      gameAttempts: 'id, sessionId, timestamp, [sessionId+timestamp]',
     });
   }
 }
