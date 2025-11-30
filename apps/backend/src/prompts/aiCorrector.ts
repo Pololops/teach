@@ -23,7 +23,7 @@ If the message has errors:
     {
       "start": 0,
       "end": 5,
-      "original": "word with error",
+      "original": "word exactly as it appears in the original message with error",
       "corrected": "corrected word",
       "type": "spelling"
     }
