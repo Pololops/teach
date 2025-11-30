@@ -8,7 +8,7 @@ const ollamaProvider = new OllamaProvider();
 /**
  * Get AI provider (always returns Ollama)
  */
-export function getProvider(name: AIProviderType = 'ollama'): AIProvider {
+export function getProvider(_name: AIProviderType = 'ollama'): AIProvider {
   if (!ollamaProvider.isAvailable()) {
     throw new Error(
       'Ollama is not available. Please ensure Ollama is running locally and the model is loaded.'

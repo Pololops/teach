@@ -85,19 +85,15 @@ function MessageBubbleWithHighlights({
                   </PopoverTrigger>
                   <PopoverContent className="w-auto max-w-xs shadow-lg" side="top" align="start">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
-                          {change.type === 'grammar' ? 'grammaire' :
-                            change.type === 'spelling' ? 'orthographe' :
-                              change.type === 'vocabulary' ? 'vocabulaire' :
-                                change.type === 'conjugation' ? 'conjugaison' :
-                                  change.type}
-                        </span>
-                      </div>
+                      {change.explanation && (
+                        <p className="text-sm italic text-muted-foreground mb-3">
+                          {change.explanation}
+                        </p>
+                      )}
                       <div className="space-y-1">
                         <p className="text-sm">
                           <span className="font-semibold">Original :</span>{' '}
-                          <span className="line-through text-muted-foreground">{change.original}</span>
+                          <span className="line-through text-destructive">{change.original}</span>
                         </p>
                         <p className="text-sm">
                           <span className="font-semibold">Correction :</span>{' '}

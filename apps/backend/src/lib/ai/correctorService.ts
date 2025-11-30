@@ -1,12 +1,13 @@
 import OpenAI from 'openai';
 import { AI_CORRECTOR_PROMPT } from '../../prompts/aiCorrector';
+import { calculatePositions } from './diffUtils';
 
 interface CorrectionChange {
   start: number;
   end: number;
   original: string;
   corrected: string;
-  type: 'spelling' | 'grammar' | 'vocabulary' | 'conjugation';
+  explanation: string;
 }
 
 export interface CorrectionResponse {
@@ -76,13 +77,13 @@ export class CorrectorService {
     });
 
     const content = response.choices[0]?.message?.content || '';
-    return this.parseCorrection(content);
+    return this.parseCorrection(content, text);
   }
 
   /**
    * Parse AI response into structured correction data
    */
-  private parseCorrection(response: string): CorrectionResponse {
+  private parseCorrection(response: string, originalText: string): CorrectionResponse {
     try {
       // Clean up response - remove markdown code blocks if present
       let cleaned = response.trim();
@@ -109,26 +110,32 @@ export class CorrectorService {
       }
 
       // Validate required fields when hasErrors is true
-      if (!parsed.correctedText || !Array.isArray(parsed.changes)) {
-        throw new Error('Invalid response structure: missing correctedText or changes');
+      if (!parsed.correctedText) {
+        throw new Error('Invalid response structure: missing correctedText');
       }
 
-      // Validate each change
-      const validChanges = parsed.changes.filter((change: any) => {
-        return (
-          typeof change.start === 'number' &&
-          typeof change.end === 'number' &&
-          typeof change.original === 'string' &&
-          typeof change.corrected === 'string' &&
-          typeof change.type === 'string' &&
-          ['spelling', 'grammar', 'vocabulary', 'conjugation'].includes(change.type)
-        );
-      });
+      // Calculate accurate positions using diff algorithm
+      const changes = calculatePositions(originalText, parsed.correctedText);
+
+      // If AI provided explanation hints, match them to our calculated positions
+      if (parsed.changeHints && Array.isArray(parsed.changeHints) && parsed.changeHints.length > 0) {
+        console.log('AI provided changeHints:', JSON.stringify(parsed.changeHints, null, 2));
+        const matchedChanges = this.matchExplanations(changes, parsed.changeHints);
+        console.log('Matched changes:', JSON.stringify(matchedChanges, null, 2));
+        return {
+          hasErrors: true,
+          correctedText: parsed.correctedText,
+          changes: matchedChanges,
+        };
+      }
+
+      console.log('No changeHints from AI, using changes without explanations');
+      console.log('Calculated changes:', JSON.stringify(changes, null, 2));
 
       return {
         hasErrors: true,
         correctedText: parsed.correctedText,
-        changes: validChanges,
+        changes,
       };
     } catch (error) {
       console.error('Failed to parse correction response:', error);
@@ -136,6 +143,36 @@ export class CorrectorService {
       // Return no errors on parse failure
       return { hasErrors: false };
     }
+  }
+
+  /**
+   * Match AI explanation hints to calculated positions
+   * This allows AI to provide accurate explanations while we calculate positions
+   */
+  private matchExplanations(
+    changes: CorrectionChange[],
+    hints: Array<{ original?: string; corrected?: string; explanation?: string }>
+  ): CorrectionChange[] {
+    return changes.map((change) => {
+      // Try to find a matching hint based on original or corrected text
+      const matchingHint = hints.find(
+        (hint) =>
+          (hint.original && change.original.includes(hint.original)) ||
+          (hint.original && hint.original.includes(change.original)) ||
+          (hint.corrected && change.corrected.includes(hint.corrected)) ||
+          (hint.corrected && hint.corrected.includes(change.corrected))
+      );
+
+      if (matchingHint?.explanation) {
+        return {
+          ...change,
+          explanation: matchingHint.explanation,
+        };
+      }
+
+      // Keep empty explanation if no hint matches
+      return change;
+    });
   }
 }
 

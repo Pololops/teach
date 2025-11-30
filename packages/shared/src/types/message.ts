@@ -76,7 +76,7 @@ export const AICorrectionChangeSchema = z.object({
   end: z.number().int().min(0),
   original: z.string().min(1),
   corrected: z.string().min(1),
-  type: z.enum(['spelling', 'grammar', 'vocabulary', 'conjugation']),
+  explanation: z.string().min(1).max(300),
 });
 export type AICorrectionChange = z.infer<typeof AICorrectionChangeSchema>;
 
