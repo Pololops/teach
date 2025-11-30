@@ -23,21 +23,19 @@ interface ChatContainerProps {
  * - Provides loading and error states
  */
 export function ChatContainer({ conversationId }: ChatContainerProps) {
-  const { currentUser, updateLevel } = useUserStore();
+  const { currentLevel, updateLevel } = useUserStore();
   const [targetLevel, setTargetLevel] = useState<CEFRLevel>(
-    currentUser?.currentLevel || 'B1'
+    currentLevel || 'A1'
   );
 
   // Level detection
   const { analyzeMessage } = useLevelDetection({
-    userId: currentUser?.id || '',
+    userId: currentLevel ? 'user-id' : '',
     currentLevel: targetLevel,
     onLevelChange: async (newLevel, confidence) => {
       console.log(`Niveau changé pour ${newLevel} (confiance: ${confidence})`);
       setTargetLevel(newLevel);
-      if (currentUser) {
-        await updateLevel(newLevel);
-      }
+      await updateLevel(newLevel);
     },
     minConfidence: 0.7,
     minSamples: 5,

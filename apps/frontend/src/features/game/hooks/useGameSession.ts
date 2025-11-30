@@ -15,7 +15,7 @@ interface UseGameSessionOptions {
 /**
  * Hook to manage game session lifecycle and question flow
  */
-export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) {
+export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) {
   const queryClient = useQueryClient();
   const {
     currentSession,

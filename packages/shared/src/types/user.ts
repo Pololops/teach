@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { CEFRLevelSchema } from './cefr.js';
 import { AIProviderSchema } from './api.js';
 
 /**
@@ -20,11 +19,11 @@ export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 
 /**
  * User entity (anonymous, local-first)
+ * Note: currentLevel is stored in ProgressMetrics table, not here
  */
 export const UserSchema = z.object({
   id: z.string().uuid(),
   displayName: z.string().min(1).max(50).optional(),
-  currentLevel: CEFRLevelSchema,
   createdAt: z.number(),
   updatedAt: z.number(),
   preferences: UserPreferencesSchema,
@@ -38,5 +37,5 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   theme: 'system',
   showCorrections: true,
   showSuggestions: true,
-  aiProvider: 'auto',
+  aiProvider: 'ollama',
 };

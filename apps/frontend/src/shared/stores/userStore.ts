@@ -1,19 +1,16 @@
 import { create } from 'zustand';
 import type { User, UserPreferences, CEFRLevel } from '@teach/shared';
-import {
-  getUser,
-  updateUserLevel,
-  updateUserPreferences,
-} from '../lib/storage/entities/user';
+import { getUser, updateUserPreferences } from '../lib/storage/entities/user';
+import { getProgress, trackLevelChange } from '../lib/storage/entities/progress';
 
 interface UserState {
   // State
   currentUser: User | null;
+  currentLevel: CEFRLevel | null;
   isLoading: boolean;
   error: string | null;
 
   // Computed
-  currentLevel: CEFRLevel | null;
   preferences: UserPreferences | null;
 
   // Actions
@@ -26,13 +23,11 @@ interface UserState {
 export const useUserStore = create<UserState>((set, get) => ({
   // Initial state
   currentUser: null,
+  currentLevel: null,
   isLoading: false,
   error: null,
 
   // Computed
-  get currentLevel() {
-    return get().currentUser?.currentLevel ?? null;
-  },
   get preferences() {
     return get().currentUser?.preferences ?? null;
   },
@@ -42,7 +37,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const user = await getUser();
-      set({ currentUser: user, isLoading: false });
+      const progress = await getProgress(user.id);
+      set({ currentUser: user, currentLevel: progress.currentLevel, isLoading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to load user';
       set({ error: message, isLoading: false });
@@ -58,9 +54,9 @@ export const useUserStore = create<UserState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      await updateUserLevel(currentUser.id, level);
-      const updatedUser = await getUser();
-      set({ currentUser: updatedUser, isLoading: false });
+      // Update in progressMetrics table (single source of truth)
+      await trackLevelChange(currentUser.id, level, 1.0);
+      set({ currentLevel: level, isLoading: false });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update level';
       set({ error: message, isLoading: false });
@@ -88,6 +84,6 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
 
   reset: () => {
-    set({ currentUser: null, isLoading: false, error: null });
+    set({ currentUser: null, currentLevel: null, isLoading: false, error: null });
   },
 }));

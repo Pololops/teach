@@ -13,7 +13,6 @@ export async function getUser(): Promise<User> {
     // Create default anonymous user
     const newUser: User = {
       id: crypto.randomUUID(),
-      currentLevel: 'A1',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       preferences: { ...DEFAULT_USER_PREFERENCES },
@@ -55,15 +54,3 @@ export async function updateUserPreferences(
   });
 }
 
-/**
- * Update user's current CEFR level
- */
-export async function updateUserLevel(
-  userId: string,
-  level: User['currentLevel']
-): Promise<void> {
-  await db.users.update(userId, {
-    currentLevel: level,
-    updatedAt: Date.now(),
-  });
-}

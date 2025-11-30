@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Conversation } from '@teach/shared';
 import { createConversation, getConversations } from '@/shared/lib/storage/entities/conversation';
 import { getUser } from '@/shared/lib/storage/entities/user';
+import { getProgress } from '@/shared/lib/storage/entities/progress';
 
 export function useConversation() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
@@ -13,6 +14,7 @@ export function useConversation() {
       try {
         // Get or create user
         const user = await getUser();
+        const progress = await getProgress(user.id);
 
         // Get active conversations
         const conversations = await getConversations(user.id, 'active');
@@ -24,7 +26,7 @@ export function useConversation() {
           const newConv = await createConversation(
             user.id,
             'Practice Chat',
-            user.currentLevel
+            progress.currentLevel
           );
           setConversation(newConv);
         }

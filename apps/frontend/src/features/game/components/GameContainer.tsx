@@ -5,6 +5,7 @@ import { ErrorDisplay } from '@/components/ui/error-display';
 import { SectionLayout } from '@/components/ui/section-layout';
 import { useNavigationStore } from '@/shared/stores/navigationStore';
 import { getUser } from '@/shared/lib/storage/entities/user';
+import { getProgress } from '@/shared/lib/storage/entities/progress';
 import { useGameSession } from '../hooks/useGameSession';
 import { EmojiDisplay } from './EmojiDisplay';
 import { AnswerButtons } from './AnswerButtons';
@@ -19,7 +20,7 @@ import type { AppError, ErrorAction } from '@teach/shared';
 export function GameContainer() {
   const { navigateTo } = useNavigationStore();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userLevel, setUserLevel] = useState<'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'>('B1');
+  const [userLevel, setUserLevel] = useState<'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'>('A1');
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<AppError | null>(null);
 
@@ -28,8 +29,9 @@ export function GameContainer() {
     async function loadUser() {
       try {
         const user = await getUser();
+        const progress = await getProgress(user.id);
         setUserId(user.id);
-        setUserLevel(user.currentLevel);
+        setUserLevel(progress.currentLevel);
       } catch (err) {
         setInitError(parseError(err));
       } finally {
