@@ -506,6 +506,7 @@ function logError(error: AppError) {
 ### From Old Error Handling
 
 **Before:**
+
 ```typescript
 try {
   await fetchData();
@@ -516,6 +517,7 @@ try {
 ```
 
 **After:**
+
 ```typescript
 try {
   await fetchData();
@@ -529,6 +531,7 @@ try {
 ### Updating Store Types
 
 **Before:**
+
 ```typescript
 interface State {
   error: string | null;
@@ -536,6 +539,7 @@ interface State {
 ```
 
 **After:**
+
 ```typescript
 import type { AppError } from '@teach/shared';
 
@@ -565,4 +569,3 @@ A: Store array of errors, or show them sequentially with dismissal.
 
 **Q: Are errors automatically reported?**  
 A: No - you need to integrate with your logging service of choice.
-

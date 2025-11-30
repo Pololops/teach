@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { CEFRLevel, ErrorAction } from '@teach/shared';
+import { SectionLayout } from '@/components/ui/section-layout';
 import { MessageList } from './MessageList';
 import { MessageInput } from '@/components/ui/message-input';
 import { ErrorDisplay } from '@/components/ui/error-display';
@@ -98,23 +99,19 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="border-b border-border bg-background px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Conversation</h2>
-            <p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>
+    <SectionLayout
+      title="Conversation"
+      subtitle={<p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>}
+      rightContent={
+        contextStats && contextStats.truncated ? (
+          <div className="text-xs text-muted-foreground">
+            <span title={`Total: ${contextStats.totalMessages} messages | Tokens: ~${contextStats.estimatedTokens}`}>
+              Context: {contextStats.includedMessages}/{contextStats.totalMessages} messages
+            </span>
           </div>
-          {contextStats && contextStats.truncated && (
-            <div className="text-xs text-muted-foreground">
-              <span title={`Total: ${contextStats.totalMessages} messages | Tokens: ~${contextStats.estimatedTokens}`}>
-                Context: {contextStats.includedMessages}/{contextStats.totalMessages} messages
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
+        ) : undefined
+      }
+    >
       <MessageList
         messages={messages}
         streamingContent={streamingContent}
@@ -139,6 +136,6 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
           spellCheck={false}
         />
       </form>
-    </div>
+    </SectionLayout>
   );
 }

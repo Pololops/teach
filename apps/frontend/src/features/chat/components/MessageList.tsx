@@ -44,9 +44,9 @@ export function MessageList({ messages, streamingContent, error, onErrorAction, 
     ]
     : shadcnMessages;
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (instant, no animation)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages, streamingContent]);
 
   // Starter prompts for empty state

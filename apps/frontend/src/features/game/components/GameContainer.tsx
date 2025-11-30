@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorDisplay } from '@/components/ui/error-display';
+import { SectionLayout } from '@/components/ui/section-layout';
 import { useNavigationStore } from '@/shared/stores/navigationStore';
 import { getUser } from '@/shared/lib/storage/entities/user';
 import { useGameSession } from '../hooks/useGameSession';
@@ -127,67 +128,56 @@ export function GameContainer() {
   const isWaitingForNextQuestion = showResult === 'correct' || (showResult === 'wrong' && attempts >= maxAttempts);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
-      <div className="border-b border-border bg-background px-4 py-3">
-        <div className="flex items-center justify-between max-w-4xl mx-auto">
-          <Button
-            onClick={handleBack}
-            variant="ghost"
-            size="sm"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Accueil
-          </Button>
-          <h2 className="text-lg font-semibold">Jeu des émojis</h2>
-          <div className="w-20" /> {/* Spacer for centering */}
-        </div>
-      </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <SectionLayout
+        title="Jeu des émojis"
+        onBack={handleBack}
+      >
+        {/* Main Game Area */}
+        <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
+          {isLoading && !question ? (
+            <div className="text-muted-foreground">Chargement...</div>
+          ) : question ? (
+            <>
+              {/* Stats */}
+              {session && <GameStats session={session} />}
 
-      {/* Main Game Area */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">
-        {isLoading && !question ? (
-          <div className="text-muted-foreground">Chargement...</div>
-        ) : question ? (
-          <>
-            {/* Stats */}
-            {session && <GameStats session={session} />}
+              {/* Emoji Display */}
+              <EmojiDisplay
+                emoji={question.emoji}
+                shake={showResult === 'wrong' && attempts < maxAttempts}
+              />
 
-            {/* Emoji Display */}
-            <EmojiDisplay
-              emoji={question.emoji}
-              shake={showResult === 'wrong' && attempts < maxAttempts}
-            />
-
-            {/* Attempts Indicator */}
-            <div className="flex gap-2">
-              {Array.from({ length: maxAttempts }).map((_, index) => (
-                <div
-                  key={index}
-                  className={`w-3 h-3 rounded-full ${index < attempts
+              {/* Attempts Indicator */}
+              <div className="flex gap-2">
+                {Array.from({ length: maxAttempts }).map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-3 h-3 rounded-full ${index < attempts
                       ? 'bg-red-500'
                       : 'bg-muted'
-                    }`}
-                />
-              ))}
-            </div>
+                      }`}
+                  />
+                ))}
+              </div>
 
-            {/* Answer Buttons */}
-            <AnswerButtons
-              correctAnswer={question.correctAnswer}
-              wrongAnswers={question.wrongAnswers}
-              onAnswer={submitAnswer}
-              disabled={isLoading || isWaitingForNextQuestion}
-            />
-          </>
-        ) : null}
-      </div>
+              {/* Answer Buttons */}
+              <AnswerButtons
+                correctAnswer={question.correctAnswer}
+                wrongAnswers={question.wrongAnswers}
+                onAnswer={submitAnswer}
+                disabled={isLoading || isWaitingForNextQuestion}
+              />
+            </>
+          ) : null}
+        </div>
 
-      {/* Result Overlay */}
-      <ResultOverlay
-        result={showResult === 'correct' ? 'correct' : 'wrong'}
-        show={isWaitingForNextQuestion}
-      />
+        {/* Result Overlay */}
+        <ResultOverlay
+          result={showResult === 'correct' ? 'correct' : 'wrong'}
+          show={isWaitingForNextQuestion}
+        />
+      </SectionLayout>
     </div>
   );
 }
