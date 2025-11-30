@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import type { CEFRLevel } from '@teach/shared';
+import type { CEFRLevel, ErrorAction } from '@teach/shared';
 import { MessageList } from './MessageList';
 import { MessageInput } from '@/components/ui/message-input';
+import { ErrorDisplay } from '@/components/ui/error-display';
 import { useMessages } from '../hooks/useMessages';
 import { useTeachChat } from '../hooks/useTeachChat';
 import { useLevelDetection } from '../../level-detection/hooks/useLevelDetection';
@@ -51,8 +52,10 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
     handleSubmit,
     isLoading,
     streamingContent,
+    error,
     contextStats,
     append,
+    clearError,
   } = useTeachChat({
     conversationId,
     targetLevel,
@@ -67,6 +70,31 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   // Handle prompt suggestion clicks
   const handlePromptClick = async (content: string) => {
     await append({ role: 'user', content });
+  };
+
+  // Handle error actions
+  const handleErrorAction = (action: ErrorAction) => {
+    switch (action.action) {
+      case 'retry':
+        // Retry by resubmitting the last message
+        clearError();
+        break;
+      case 'dismiss':
+        clearError();
+        break;
+      case 'wait':
+        // User acknowledges wait time
+        setTimeout(() => {
+          clearError();
+        }, 2000);
+        break;
+      case 'contact':
+        window.location.href = 'mailto:support@teach.app?subject=Chat Error';
+        break;
+      default:
+        clearError();
+        break;
+    }
   };
 
   return (
@@ -90,10 +118,16 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       <MessageList
         messages={messages}
         streamingContent={streamingContent}
+        error={error}
+        onErrorAction={handleErrorAction}
         onSendPrompt={handlePromptClick}
       />
 
-      <form onSubmit={handleSubmit} className="border-t border-border bg-background px-4 py-3">
+      <form onSubmit={handleSubmit} className="border-t border-border bg-background px-4 py-3">{error && (
+        <div className="mb-3">
+          <ErrorDisplay error={error} onAction={handleErrorAction} />
+        </div>
+      )}
         <MessageInput
           isGenerating={isLoading}
           placeholder="Tapez votre message en anglais..."

@@ -17,22 +17,39 @@ chat.post('/stream', async (c) => {
     const provider = getProvider(request.provider);
 
     return streamSSE(c, async (stream) => {
-      await stream.writeSSE({
-        data: JSON.stringify({ type: 'start', provider: provider.name }),
-      });
-
-      const responseStream = provider.streamResponse(
-        request.messages,
-        request.targetLevel
-      );
-
-      for await (const chunk of responseStream) {
+      try {
         await stream.writeSSE({
-          data: JSON.stringify({ type: 'content', content: chunk }),
+          data: JSON.stringify({ type: 'start', provider: provider.name }),
+        });
+
+        const responseStream = provider.streamResponse(
+          request.messages,
+          request.targetLevel
+        );
+
+        for await (const chunk of responseStream) {
+          await stream.writeSSE({
+            data: JSON.stringify({ type: 'content', content: chunk }),
+          });
+        }
+
+        await stream.writeSSE({ data: '[DONE]' });
+      } catch (streamError: any) {
+        // Error occurred during streaming - send as SSE error event
+        console.error('Stream error:', streamError);
+        
+        const errorResponse = {
+          type: 'error',
+          code: streamError.status === 429 ? 'rate_limit_exceeded' : 'ai_provider_error',
+          message: streamError.message || 'An error occurred during streaming',
+          status: streamError.status,
+          retryAfter: streamError.status === 429 ? 20 : undefined,
+        };
+        
+        await stream.writeSSE({
+          data: JSON.stringify(errorResponse),
         });
       }
-
-      await stream.writeSSE({ data: '[DONE]' });
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

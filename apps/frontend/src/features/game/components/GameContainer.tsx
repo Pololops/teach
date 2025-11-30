@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { ErrorDisplay } from '@/components/ui/error-display';
 import { useNavigationStore } from '@/shared/stores/navigationStore';
 import { getUser } from '@/shared/lib/storage/entities/user';
 import { useGameSession } from '../hooks/useGameSession';
@@ -8,6 +9,8 @@ import { EmojiDisplay } from './EmojiDisplay';
 import { AnswerButtons } from './AnswerButtons';
 import { ResultOverlay } from './ResultOverlay';
 import { GameStats } from './GameStats';
+import { parseError } from '@teach/shared';
+import type { AppError, ErrorAction } from '@teach/shared';
 
 /**
  * Main game container managing the emoji guessing game
@@ -17,7 +20,7 @@ export function GameContainer() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userLevel, setUserLevel] = useState<'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'>('B1');
   const [isInitializing, setIsInitializing] = useState(true);
-  const [initError, setInitError] = useState<string | null>(null);
+  const [initError, setInitError] = useState<AppError | null>(null);
 
   // Load user on mount
   useEffect(() => {
@@ -27,7 +30,7 @@ export function GameContainer() {
         setUserId(user.id);
         setUserLevel(user.currentLevel);
       } catch (err) {
-        setInitError(err instanceof Error ? err.message : 'Failed to load user');
+        setInitError(parseError(err));
       } finally {
         setIsInitializing(false);
       }
@@ -55,6 +58,34 @@ export function GameContainer() {
     navigateTo('home');
   };
 
+  const handleErrorAction = (action: ErrorAction) => {
+    switch (action.action) {
+      case 'retry':
+        window.location.reload();
+        break;
+      case 'navigate':
+        if (action.target === '/') {
+          navigateTo('home');
+        } else {
+          // Handle other navigation targets
+          navigateTo('home');
+        }
+        break;
+      case 'dismiss':
+        setInitError(null);
+        break;
+      case 'wait':
+        // Wait action - do nothing, user acknowledged
+        break;
+      case 'contact':
+        // Open support (could be email, help page, etc.)
+        window.location.href = 'mailto:support@teach.app?subject=Help Needed';
+        break;
+      default:
+        break;
+    }
+  };
+
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
@@ -65,8 +96,12 @@ export function GameContainer() {
 
   if (initError || !userId) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
-        <div className="text-red-500">Error: {initError || 'User not found'}</div>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4 p-4">
+        {initError && (
+          <div className="w-full max-w-md">
+            <ErrorDisplay error={initError} onAction={handleErrorAction} />
+          </div>
+        )}
         <Button onClick={() => navigateTo('home')} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à l'accueil
@@ -77,8 +112,10 @@ export function GameContainer() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4">
-        <div className="text-red-500">Error: {error}</div>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center gap-4 p-4">
+        <div className="w-full max-w-md">
+          <ErrorDisplay error={error} onAction={handleErrorAction} />
+        </div>
         <Button onClick={handleBack} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à l'accueil

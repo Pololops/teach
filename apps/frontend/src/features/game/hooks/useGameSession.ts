@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGameStore } from '@/shared/stores/gameStore';
 import { gameDb } from '@/shared/lib/storage/gameDb';
-import { fetchGameQuestion } from '@/shared/services/gameService';
+import { fetchGameQuestion, getGameError } from '@/shared/services/gameService';
 import type { GameSession, GameAttempt, CEFRLevel } from '@teach/shared';
 
 const MAX_ATTEMPTS = 3;
@@ -66,8 +66,8 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
       
       setIsInitialized(true);
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to initialize game';
-      setError(error);
+      const appError = getGameError(err);
+      setError(appError);
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
   /**
    * Load next question
    */
-  const loadNextQuestion = useCallback(async (session: GameSession, previousWords: string[]) => {
+  const loadNextQuestion = useCallback(async (previousWords: string[]) => {
     try {
       setLoading(true);
       const question = await fetchGameQuestion({ level, previousWords });
@@ -84,9 +84,9 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
       resetAttempts();
       setShowResult(null);
     } catch (err) {
-      const error = err instanceof Error ? err.message : 'Failed to load question';
-      setError(error);
-      throw err;
+      const appError = getGameError(err);
+      setError(appError);
+      throw appError;
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
 
         // Wait 3 seconds, then load next question
         setTimeout(async () => {
-          await loadNextQuestion(updatedSession, [...usedWords, currentQuestion.correctAnswer]);
+          await loadNextQuestion([...usedWords, currentQuestion.correctAnswer]);
         }, 3000);
 
         // Invalidate stats query to refresh
@@ -159,7 +159,7 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
 
         // Wait 3 seconds, then load next question
         setTimeout(async () => {
-          await loadNextQuestion(updatedSession, [...usedWords, currentQuestion.correctAnswer]);
+          await loadNextQuestion([...usedWords, currentQuestion.correctAnswer]);
         }, 3000);
 
         // Invalidate stats query to refresh

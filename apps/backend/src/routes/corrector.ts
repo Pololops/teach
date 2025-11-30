@@ -23,7 +23,7 @@ corrector.post('/', async (c) => {
     const correction = await correctorService.correctMessage(request.text);
 
     return c.json(correction);
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
       return c.json(
         {
@@ -35,9 +35,21 @@ corrector.post('/', async (c) => {
       );
     }
 
-    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Corrector route error:', error);
 
+    // Handle rate limit errors
+    if (error.status === 429 || error.code === 'rate_limit_exceeded' || error.code === 'insufficient_quota') {
+      return c.json(
+        {
+          code: 'rate_limit_exceeded',
+          message: 'Rate limit exceeded. Please try again later.',
+          retryAfter: 20,
+        },
+        429
+      );
+    }
+
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return c.json(
       {
         code: 'INTERNAL_ERROR',

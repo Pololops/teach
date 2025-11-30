@@ -1,4 +1,6 @@
 import type { CEFRLevel, GameQuestion } from '@teach/shared';
+import { parseError, ErrorCode, createError } from '@teach/shared';
+import type { AppError } from '@teach/shared';
 
 const API_BASE_URL = import.meta.env.VITE_AI_PROXY_URL || 'http://localhost:3000';
 
@@ -27,17 +29,32 @@ export async function fetchGameQuestion(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message || `HTTP error! status: ${response.status}`
-      );
+      
+      // Create structured error based on status
+      const error: AppError = {
+        ...parseError({ status: response.status, ...errorData }),
+        code: response.status === 429 
+          ? ErrorCode.RATE_LIMIT_EXCEEDED 
+          : ErrorCode.QUESTION_GENERATION_ERROR,
+      };
+      
+      throw error;
     }
 
     const data = await response.json();
     return data as GameQuestion;
   } catch (error) {
-    const err = error instanceof Error ? error : new Error('Unknown error');
-    console.error('Failed to fetch game question:', err);
-    throw err;
+    // Parse error into AppError
+    const appError = parseError(error);
+    console.error('Failed to fetch game question:', appError);
+    throw appError;
   }
+}
+
+/**
+ * Get the AppError from an unknown error
+ */
+export function getGameError(error: unknown): AppError {
+  return parseError(error);
 }
 

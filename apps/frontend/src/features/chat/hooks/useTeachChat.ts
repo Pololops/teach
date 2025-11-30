@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import type { CEFRLevel, MessageRole } from '@teach/shared';
+import type { CEFRLevel, MessageRole, AppError } from '@teach/shared';
 import { streamChatResponse } from '@/shared/services/chatService';
 import { correctMessage } from '@/shared/services/correctorService';
 import { addMessage, updateMessageMetadata } from '@/shared/lib/storage/entities/message';
@@ -40,6 +40,7 @@ export function useTeachChat({
   const [input, setInput] = useState('');
   const [streamingContent, setStreamingContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<AppError | null>(null);
   const [contextStats, setContextStats] = useState<ContextWindowStats | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -78,6 +79,7 @@ export function useTeachChat({
       if (!content.trim() || isLoading) return;
 
       setIsLoading(true);
+      setError(null); // Clear previous errors
       abortControllerRef.current = new AbortController();
 
       try {
@@ -169,16 +171,21 @@ export function useTeachChat({
             setIsLoading(false);
             abortControllerRef.current = null;
           },
-          onError: (error) => {
-            console.error('Chat stream error:', error);
+          onError: (streamError) => {
+            console.error('Chat stream error:', streamError);
+            setError(streamError);
             setStreamingContent('');
             setTyping(false);
             setIsLoading(false);
             abortControllerRef.current = null;
           },
         });
-      } catch (error) {
-        console.error('Error sending message:', error);
+      } catch (err) {
+        console.error('Error sending message:', err);
+        // Error should already be AppError from chatService
+        if (typeof err === 'object' && err !== null && 'code' in err) {
+          setError(err as AppError);
+        }
         setIsLoading(false);
         setStreamingContent('');
         setTyping(false);
@@ -221,8 +228,10 @@ export function useTeachChat({
     handleSubmit,
     isLoading: isLoading || isLoadingMessages,
     streamingContent,
+    error,
     contextStats,
     stop,
     append,
+    clearError: () => setError(null),
   };
 }

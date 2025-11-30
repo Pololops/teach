@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { GameSession, GameQuestion } from '@teach/shared';
+import type { GameSession, GameQuestion, AppError } from '@teach/shared';
 
 interface GameState {
   // Current session
@@ -10,7 +10,7 @@ interface GameState {
   
   // UI state
   isLoading: boolean;
-  error: string | null;
+  error: AppError | null;
   showResult: 'correct' | 'wrong' | null;
   
   // Actions
@@ -21,7 +21,7 @@ interface GameState {
   addUsedWord: (word: string) => void;
   clearUsedWords: () => void;
   setLoading: (isLoading: boolean) => void;
-  setError: (error: string | null) => void;
+  setError: (error: AppError | null) => void;
   setShowResult: (result: 'correct' | 'wrong' | null) => void;
   resetGame: () => void;
 }

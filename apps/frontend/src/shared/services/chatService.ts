@@ -1,4 +1,5 @@
-import type { ChatMessage, CEFRLevel, AIProviderType } from '@teach/shared';
+import type { ChatMessage, CEFRLevel, AIProviderType, AppError } from '@teach/shared';
+import { parseError, ErrorCode } from '@teach/shared';
 
 const API_BASE_URL = import.meta.env.VITE_AI_PROXY_URL || 'http://localhost:3000';
 
@@ -12,7 +13,15 @@ interface StreamEventContent {
   content: string;
 }
 
-type StreamEvent = StreamEventStart | StreamEventContent;
+interface StreamEventError {
+  type: 'error';
+  code: string;
+  message: string;
+  status?: number;
+  retryAfter?: number;
+}
+
+type StreamEvent = StreamEventStart | StreamEventContent | StreamEventError;
 
 export interface ChatStreamOptions {
   messages: ChatMessage[];
@@ -21,7 +30,7 @@ export interface ChatStreamOptions {
   onStart?: (provider: string) => void;
   onChunk?: (content: string) => void;
   onComplete?: () => void;
-  onError?: (error: Error) => void;
+  onError?: (error: AppError) => void;
 }
 
 /**
@@ -44,12 +53,14 @@ export async function streamChatResponse(options: ChatStreamOptions): Promise<vo
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      const error = parseError({ status: response.status, ...errorData });
+      throw error;
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error('Response body is null');
+      throw parseError({ code: ErrorCode.CHAT_STREAM_ERROR, message: 'Response body is null' });
     }
 
     const decoder = new TextDecoder();
@@ -79,16 +90,31 @@ export async function streamChatResponse(options: ChatStreamOptions): Promise<vo
             onStart?.(event.provider);
           } else if (event.type === 'content') {
             onChunk?.(event.content);
+          } else if (event.type === 'error') {
+            // Handle error event from stream
+            const error = parseError({
+              status: event.status || 500,
+              code: event.code,
+              message: event.message,
+            });
+            if (event.retryAfter) {
+              error.retryAfter = event.retryAfter;
+            }
+            throw error;
           }
         } catch (e) {
+          // If it's already an AppError, rethrow it
+          if (typeof e === 'object' && e !== null && 'code' in e && 'userMessage' in e) {
+            throw e;
+          }
           console.error('Failed to parse SSE data:', e);
         }
       }
     }
   } catch (error) {
-    const err = error instanceof Error ? error : new Error('Unknown error');
-    onError?.(err);
-    throw err;
+    const appError = parseError(error);
+    onError?.(appError);
+    throw appError;
   }
 }
 
@@ -101,9 +127,13 @@ export async function checkHealth(): Promise<{
   timestamp: string;
   providers: string[];
 }> {
-  const response = await fetch(`${API_BASE_URL}/api/health`);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/health`);
+    if (!response.ok) {
+      throw parseError({ status: response.status });
+    }
+    return response.json();
+  } catch (error) {
+    throw parseError(error);
   }
-  return response.json();
 }

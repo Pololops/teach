@@ -4,11 +4,13 @@ import { PromptSuggestions } from '@/components/ui/prompt-suggestions';
 import { TeachChatMessage } from './TeachChatMessage';
 import { useUIStore } from '@/shared/stores/uiStore';
 import { toShadcnMessages, type ShadcnMessage } from '../adapters/messageAdapter';
-import type { Message } from '@teach/shared';
+import type { Message, AppError, ErrorAction } from '@teach/shared';
 
 interface MessageListProps {
   messages: Message[];
   streamingContent?: string;
+  error?: AppError | null;
+  onErrorAction?: (action: ErrorAction) => void;
   onSendPrompt?: (content: string) => void;
 }
 
@@ -22,7 +24,7 @@ interface MessageListProps {
  * - Shows prompt suggestions in empty state
  * - Uses shadcn spacing and structure
  */
-export function MessageList({ messages, streamingContent, onSendPrompt }: MessageListProps) {
+export function MessageList({ messages, streamingContent, error, onErrorAction, onSendPrompt }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { isTyping } = useUIStore();
 
@@ -32,14 +34,14 @@ export function MessageList({ messages, streamingContent, onSendPrompt }: Messag
   // Add streaming message if active
   const displayMessages = streamingContent
     ? [
-        ...shadcnMessages,
-        {
-          id: 'streaming',
-          role: 'assistant' as const,
-          content: streamingContent,
-          createdAt: new Date(),
-        },
-      ]
+      ...shadcnMessages,
+      {
+        id: 'streaming',
+        role: 'assistant' as const,
+        content: streamingContent,
+        createdAt: new Date(),
+      },
+    ]
     : shadcnMessages;
 
   // Auto-scroll to bottom when new messages arrive
@@ -83,7 +85,7 @@ export function MessageList({ messages, streamingContent, onSendPrompt }: Messag
               metadata={message.metadata}
             />
           ))}
-          {isTyping && !streamingContent && <TypingIndicator />}
+          {isTyping && !streamingContent && !error && <TypingIndicator />}
         </div>
       )}
 
