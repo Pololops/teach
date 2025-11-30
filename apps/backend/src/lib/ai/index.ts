@@ -1,46 +1,28 @@
 import type { AIProvider as AIProviderType } from '@teach/shared';
 import type { AIProvider } from './providers/base';
-import { OpenAIProvider } from './providers/openai';
-import { AnthropicProvider } from './providers/anthropic';
+import { OllamaProvider } from './providers/ollama';
 
-// Initialize providers
-const providers: AIProvider[] = [new OpenAIProvider(), new AnthropicProvider()];
+// Initialize Ollama provider
+const ollamaProvider = new OllamaProvider();
 
 /**
- * Get AI provider by name or auto-select
- * Auto-selection preference: OpenAI (lower latency) → Anthropic → error
+ * Get AI provider (always returns Ollama)
  */
-export function getProvider(name: AIProviderType = 'auto'): AIProvider {
-  if (name === 'auto') {
-    // Auto-select first available provider
-    for (const provider of providers) {
-      if (provider.isAvailable()) {
-        return provider;
-      }
-    }
+export function getProvider(name: AIProviderType = 'ollama'): AIProvider {
+  if (!ollamaProvider.isAvailable()) {
     throw new Error(
-      'No AI providers available. Please configure OPENAI_API_KEY or ANTHROPIC_API_KEY.'
+      'Ollama is not available. Please ensure Ollama is running locally and the model is loaded.'
     );
   }
 
-  // Get specific provider
-  const provider = providers.find((p) => p.name === name);
-  if (!provider) {
-    throw new Error(`Unknown AI provider: ${name}`);
-  }
-
-  if (!provider.isAvailable()) {
-    throw new Error(`${name} provider not available - API key not configured`);
-  }
-
-  return provider;
+  return ollamaProvider;
 }
 
 /**
  * Get list of available providers
  */
 export function getAvailableProviders(): string[] {
-  return providers.filter((p) => p.isAvailable()).map((p) => p.name);
+  return ollamaProvider.isAvailable() ? ['ollama'] : [];
 }
 
 // Export provider interface

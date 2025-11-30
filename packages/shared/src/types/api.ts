@@ -5,7 +5,7 @@ import { ChatMessageSchema, AICorrectionChangeSchema } from './message.js';
 /**
  * AI Provider types
  */
-export const AIProviderSchema = z.enum(['openai', 'anthropic', 'auto']);
+export const AIProviderSchema = z.enum(['ollama']);
 export type AIProvider = z.infer<typeof AIProviderSchema>;
 
 /**
@@ -14,7 +14,7 @@ export type AIProvider = z.infer<typeof AIProviderSchema>;
 export const ChatStreamRequestSchema = z.object({
   messages: z.array(ChatMessageSchema).min(1).max(100),
   targetLevel: CEFRLevelSchema,
-  provider: AIProviderSchema.optional().default('auto'),
+  provider: AIProviderSchema.optional().default('ollama'),
   stream: z.boolean().optional().default(true),
 });
 export type ChatStreamRequest = z.infer<typeof ChatStreamRequestSchema>;

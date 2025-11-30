@@ -37,7 +37,7 @@ export interface ChatStreamOptions {
  * Stream AI chat response using Server-Sent Events
  */
 export async function streamChatResponse(options: ChatStreamOptions): Promise<void> {
-  const { messages, targetLevel, provider = 'auto', onStart, onChunk, onComplete, onError } = options;
+  const { messages, targetLevel, provider = 'ollama', onStart, onChunk, onComplete, onError } = options;
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {

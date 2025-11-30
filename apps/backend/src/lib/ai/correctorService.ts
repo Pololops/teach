@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { AI_CORRECTOR_PROMPT } from '../../prompts/aiCorrector';
 
@@ -20,21 +19,18 @@ export interface CorrectionResponse {
  * Corrector Service - Analyzes text for errors and returns corrections
  */
 export class CorrectorService {
-  private anthropic: Anthropic | null = null;
-  private openai: OpenAI | null = null;
+  private client: OpenAI;
+  private model: string;
 
   constructor() {
-    // Initialize available AI clients
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-
-    if (anthropicKey) {
-      this.anthropic = new Anthropic({ apiKey: anthropicKey });
-    }
-
-    if (openaiKey) {
-      this.openai = new OpenAI({ apiKey: openaiKey });
-    }
+    // Initialize Ollama client using OpenAI-compatible API
+    const baseURL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+    this.model = process.env.OLLAMA_MODEL || 'llama3.1';
+    
+    this.client = new OpenAI({
+      baseURL,
+      apiKey: 'ollama', // Required by SDK but not used by Ollama
+    });
   }
 
   /**
@@ -42,31 +38,29 @@ export class CorrectorService {
    */
   async correctMessage(text: string): Promise<CorrectionResponse> {
     try {
-      // Try OpenAI first (lower latency), fallback to Anthropic
-      if (this.openai) {
-        return await this.correctWithOpenAI(text);
-      } else if (this.anthropic) {
-        return await this.correctWithAnthropic(text);
-      } else {
-        throw new Error('No AI provider available');
-      }
-    } catch (error) {
+      return await this.correctWithOllama(text);
+    } catch (error: any) {
       console.error('Corrector service error:', error);
-      // Return no errors on failure (graceful degradation)
+      
+      // Transform Ollama-specific errors
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        throw new Error('Ollama is not running. Please start Ollama and try again.');
+      }
+      if (error.status === 404 || error.message?.includes('model')) {
+        throw new Error(`Model '${this.model}' not found. Please pull the model with: ollama pull ${this.model}`);
+      }
+      
+      // Return no errors on other failures (graceful degradation)
       return { hasErrors: false };
     }
   }
 
   /**
-   * Correct using OpenAI
+   * Correct using Ollama
    */
-  private async correctWithOpenAI(text: string): Promise<CorrectionResponse> {
-    if (!this.openai) {
-      throw new Error('OpenAI client not available');
-    }
-
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+  private async correctWithOllama(text: string): Promise<CorrectionResponse> {
+    const response = await this.client.chat.completions.create({
+      model: this.model,
       messages: [
         {
           role: 'system',
@@ -82,32 +76,6 @@ export class CorrectorService {
     });
 
     const content = response.choices[0]?.message?.content || '';
-    return this.parseCorrection(content);
-  }
-
-  /**
-   * Correct using Anthropic
-   */
-  private async correctWithAnthropic(text: string): Promise<CorrectionResponse> {
-    if (!this.anthropic) {
-      throw new Error('Anthropic client not available');
-    }
-
-    const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1000,
-      temperature: 0.3, // Lower temperature for more consistent corrections
-      system: AI_CORRECTOR_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: text,
-        },
-      ],
-    });
-
-    const content =
-      response.content[0]?.type === 'text' ? response.content[0].text : '';
     return this.parseCorrection(content);
   }
 

@@ -38,12 +38,19 @@ chat.post('/stream', async (c) => {
         // Error occurred during streaming - send as SSE error event
         console.error('Stream error:', streamError);
         
+        // Determine error code based on Ollama-specific errors
+        let errorCode = 'ai_provider_error';
+        if (streamError.code === 'ECONNREFUSED' || streamError.message?.includes('ECONNREFUSED')) {
+          errorCode = 'no_ai_provider';
+        } else if (streamError.status === 404 || streamError.message?.includes('model')) {
+          errorCode = 'ai_provider_error';
+        }
+        
         const errorResponse = {
           type: 'error',
-          code: streamError.status === 429 ? 'rate_limit_exceeded' : 'ai_provider_error',
+          code: errorCode,
           message: streamError.message || 'An error occurred during streaming',
           status: streamError.status,
-          retryAfter: streamError.status === 429 ? 20 : undefined,
         };
         
         await stream.writeSSE({

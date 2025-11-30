@@ -16,15 +16,15 @@ export function GameStats({ session }: GameStatsProps) {
     <div className="flex gap-6 justify-center text-sm text-muted-foreground">
       <div className="flex flex-col items-center">
         <span className="text-2xl font-bold text-foreground">{session.score}</span>
-        <span>Score</span>
+        <span>Points</span>
       </div>
       <div className="flex flex-col items-center">
         <span className="text-2xl font-bold text-foreground">{session.currentStreak}</span>
-        <span>Streak</span>
+        <span>Série</span>
       </div>
       <div className="flex flex-col items-center">
         <span className="text-2xl font-bold text-foreground">{accuracy}%</span>
-        <span>Accuracy</span>
+        <span>Précision</span>
       </div>
     </div>
   );

@@ -18,12 +18,10 @@ export enum ErrorCode {
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
 
   // AI Provider Errors
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
   AI_PROVIDER_ERROR = 'AI_PROVIDER_ERROR',
   AI_TIMEOUT = 'AI_TIMEOUT',
   AI_INVALID_RESPONSE = 'AI_INVALID_RESPONSE',
   NO_AI_PROVIDER = 'NO_AI_PROVIDER',
-  AI_QUOTA_EXCEEDED = 'AI_QUOTA_EXCEEDED',
 
   // Resource Errors
   NOT_FOUND = 'NOT_FOUND',
@@ -166,26 +164,13 @@ export const ERROR_MESSAGES: Record<ErrorCode, Omit<AppError, 'details'>> = {
   },
 
   // AI Provider Errors
-  [ErrorCode.RATE_LIMIT_EXCEEDED]: {
-    code: ErrorCode.RATE_LIMIT_EXCEEDED,
-    message: 'Limite de requêtes dépassée',
-    userMessage: '🚦 Ralentissez, étudiant! Trop de requêtes. Faisons une pause courte.',
-    severity: ErrorSeverity.WARNING,
-    retryable: true,
-    retryAfter: 20,
-    actions: [
-      { label: 'Attendre 20s', action: 'wait', isPrimary: true },
-      { label: 'Retour à l\'accueil', action: 'navigate', target: '/' },
-    ],
-  },
-
   [ErrorCode.AI_PROVIDER_ERROR]: {
     code: ErrorCode.AI_PROVIDER_ERROR,
     message: 'Erreur du fournisseur d\'IA',
-    userMessage: '🤖 Notre assistant IA est en pause. Veuillez réessayer bientôt.',
+    userMessage: '🤖 Notre assistant IA local n\'est pas accessible. Assurez-vous qu\'il est en cours d\'exécution.',
     severity: ErrorSeverity.ERROR,
     retryable: true,
-    retryAfter: 30,
+    retryAfter: 10,
     actions: [
       { label: 'Réessayer', action: 'retry', isPrimary: true },
       { label: 'Contacter le support', action: 'contact' },
@@ -219,24 +204,13 @@ export const ERROR_MESSAGES: Record<ErrorCode, Omit<AppError, 'details'>> = {
   [ErrorCode.NO_AI_PROVIDER]: {
     code: ErrorCode.NO_AI_PROVIDER,
     message: 'Aucun fournisseur d\'IA disponible',
-    userMessage: '🔌 Les fonctionnalités IA sont actuellement indisponibles. Veuillez réessayer plus tard.',
+    userMessage: '🔌 L\'assistant IA n\'est pas disponible. Veuillez vous assurer qu\'il est en cours d\'exécution.',
     severity: ErrorSeverity.CRITICAL,
-    retryable: false,
+    retryable: true,
+    retryAfter: 10,
     actions: [
-      { label: 'Contacter le support', action: 'contact', isPrimary: true },
+      { label: 'Réessayer', action: 'retry', isPrimary: true },
       { label: 'Retour à l\'accueil', action: 'navigate', target: '/' },
-    ],
-  },
-
-  [ErrorCode.AI_QUOTA_EXCEEDED]: {
-    code: ErrorCode.AI_QUOTA_EXCEEDED,
-    message: 'Quota d\'IA dépassé',
-    userMessage: '📊 Vous avez atteint votre limite d\'apprentissage pour aujourd\'hui! Revenez demain pour plus.',
-    severity: ErrorSeverity.WARNING,
-    retryable: false,
-    actions: [
-      { label: 'Voir le progrès', action: 'navigate', target: '/progress', isPrimary: true },
-      { label: 'Mettre à niveau', action: 'upgrade' },
     ],
   },
 
@@ -427,16 +401,6 @@ export function parseError(error: unknown): AppError {
   if (typeof error === 'object' && error !== null) {
     const err = error as any;
 
-    // Rate limit error
-    if (err.status === 429 || err.code === 'rate_limit_exceeded') {
-      const retryAfter = err.retry_after || err.retryAfter || 20;
-      return {
-        ...createError(ErrorCode.RATE_LIMIT_EXCEEDED),
-        retryAfter,
-        details: { originalError: err },
-      };
-    }
-
     // Server errors (5xx)
     if (err.status >= 500 && err.status < 600) {
       return createError(ErrorCode.SERVER_ERROR, { status: err.status });
@@ -468,10 +432,6 @@ export function parseError(error: unknown): AppError {
   // Standard Error object
   if (error instanceof Error) {
     // Check message for specific patterns
-    if (error.message.includes('rate limit') || error.message.includes('429')) {
-      return createError(ErrorCode.RATE_LIMIT_EXCEEDED);
-    }
-
     if (error.message.includes('timeout')) {
       return createError(ErrorCode.CONNECTION_TIMEOUT);
     }

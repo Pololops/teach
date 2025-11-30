@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { AI_GAME_PROMPT } from '../../prompts/aiGame';
 import type { CEFRLevel } from '@teach/shared';
@@ -18,24 +17,21 @@ const GENERATION_TIMEOUT = 30000; // 30 seconds timeout for AI calls
  * Game Service - Generates emoji guessing game questions with caching
  */
 export class GameService {
-  private anthropic: Anthropic | null = null;
-  private openai: OpenAI | null = null;
+  private client: OpenAI;
+  private model: string;
   private questionPool: Map<CEFRLevel, GameQuestionResponse[]> = new Map();
   private isInitialized = false;
   private isRefilling = false;
 
   constructor() {
-    // Initialize available AI clients
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-    const openaiKey = process.env.OPENAI_API_KEY;
-
-    if (anthropicKey) {
-      this.anthropic = new Anthropic({ apiKey: anthropicKey });
-    }
-
-    if (openaiKey) {
-      this.openai = new OpenAI({ apiKey: openaiKey });
-    }
+    // Initialize Ollama client using OpenAI-compatible API
+    const baseURL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1';
+    this.model = process.env.OLLAMA_MODEL || 'llama3.1';
+    
+    this.client = new OpenAI({
+      baseURL,
+      apiKey: 'ollama', // Required by SDK but not used by Ollama
+    });
 
     // Initialize empty pools for each level
     CEFR_LEVELS.forEach((level) => {
@@ -57,7 +53,7 @@ export class GameService {
     const startTime = Date.now();
 
     try {
-      // Generate questions sequentially to avoid rate limiting
+      // Generate questions sequentially to avoid overloading Ollama
       for (const level of CEFR_LEVELS) {
         console.log(`Generating questions for level ${level}...`);
         await this.fillPoolForLevel(level, POOL_SIZE_PER_LEVEL);
@@ -147,44 +143,23 @@ export class GameService {
     const usedWords = new Set<string>(pool.map((q) => q.correctAnswer));
 
     for (let i = 0; i < count; i++) {
-      let retries = 0;
-      const maxRetries = 3;
+      try {
+        const question = await this.generateNewQuestion(
+          level,
+          Array.from(usedWords)
+        );
+        pool.push(question);
+        usedWords.add(question.correctAnswer);
 
-      while (retries < maxRetries) {
-        try {
-          const question = await this.generateNewQuestion(
-            level,
-            Array.from(usedWords)
-          );
-          pool.push(question);
-          usedWords.add(question.correctAnswer);
-
-          // Add a 2 second delay between successful requests to avoid rate limiting
-          if (i < count - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-          }
-          break; // Success, move to next question
-        } catch (error: any) {
-          // Check if it's a rate limit error
-          if (error?.status === 429) {
-            const waitTime = Math.pow(2, retries) * 10000; // 10s, 20s, 40s
-            console.log(
-              `Rate limit hit for level ${level}, waiting ${waitTime / 1000}s before retry ${retries + 1}/${maxRetries}...`
-            );
-            await new Promise((resolve) => setTimeout(resolve, waitTime));
-            retries++;
-          } else {
-            console.error(
-              `Failed to generate question ${i + 1}/${count} for level ${level}:`,
-              error instanceof Error ? error.message : error
-            );
-            break; // Non-rate-limit error, skip this question
-          }
+        // Add a small delay between requests
+        if (i < count - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
         }
-      }
-
-      if (retries >= maxRetries) {
-        console.warn(`Skipping question ${i + 1}/${count} for level ${level} after ${maxRetries} retries`);
+      } catch (error: any) {
+        console.error(
+          `Failed to generate question ${i + 1}/${count} for level ${level}:`,
+          error instanceof Error ? error.message : error
+        );
       }
     }
 
@@ -231,38 +206,39 @@ export class GameService {
       );
 
       // Create generation promise
-      const generationPromise = this.openai
-        ? this.generateWithOpenAI(level, previousWords)
-        : this.anthropic
-          ? this.generateWithAnthropic(level, previousWords)
-          : Promise.reject(new Error('No AI provider available'));
+      const generationPromise = this.generateWithOllama(level, previousWords);
 
       // Race between generation and timeout
       return await Promise.race([generationPromise, timeoutPromise]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Game service error:', error);
+      
+      // Transform Ollama-specific errors
+      if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
+        throw new Error('Ollama is not running. Please start Ollama and try again.');
+      }
+      if (error.status === 404 || error.message?.includes('model')) {
+        throw new Error(`Model '${this.model}' not found. Please pull the model with: ollama pull ${this.model}`);
+      }
+      
       throw error;
     }
   }
 
   /**
-   * Generate question using OpenAI
+   * Generate question using Ollama
    */
-  private async generateWithOpenAI(
+  private async generateWithOllama(
     level: CEFRLevel,
     previousWords: string[]
   ): Promise<GameQuestionResponse> {
-    if (!this.openai) {
-      throw new Error('OpenAI client not available');
-    }
-
     let userPrompt = `Generate an emoji game question for CEFR level ${level}.`;
     if (previousWords.length > 0) {
       userPrompt += ` Don't use these words: ${previousWords.join(', ')}`;
     }
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const response = await this.client.chat.completions.create({
+      model: this.model,
       messages: [
         {
           role: 'system',
@@ -278,40 +254,6 @@ export class GameService {
     });
 
     const content = response.choices[0]?.message?.content || '';
-    return this.parseGameQuestion(content);
-  }
-
-  /**
-   * Generate question using Anthropic
-   */
-  private async generateWithAnthropic(
-    level: CEFRLevel,
-    previousWords: string[]
-  ): Promise<GameQuestionResponse> {
-    if (!this.anthropic) {
-      throw new Error('Anthropic client not available');
-    }
-
-    let userPrompt = `Generate an emoji game question for CEFR level ${level}.`;
-    if (previousWords.length > 0) {
-      userPrompt += ` Don't use these words: ${previousWords.join(', ')}`;
-    }
-
-    const response = await this.anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 500,
-      temperature: 0.8, // Higher temperature for more variety
-      system: AI_GAME_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    });
-
-    const content =
-      response.content[0]?.type === 'text' ? response.content[0].text : '';
     return this.parseGameQuestion(content);
   }
 
@@ -364,4 +306,3 @@ export class GameService {
 }
 
 export const gameService = new GameService();
-

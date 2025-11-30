@@ -37,15 +37,24 @@ corrector.post('/', async (c) => {
 
     console.error('Corrector route error:', error);
 
-    // Handle rate limit errors
-    if (error.status === 429 || error.code === 'rate_limit_exceeded' || error.code === 'insufficient_quota') {
+    // Handle Ollama-specific errors
+    if (error.code === 'ECONNREFUSED' || error.message?.includes('ECONNREFUSED')) {
       return c.json(
         {
-          code: 'rate_limit_exceeded',
-          message: 'Rate limit exceeded. Please try again later.',
-          retryAfter: 20,
+          code: 'no_ai_provider',
+          message: 'Ollama is not running. Please start Ollama and try again.',
         },
-        429
+        503
+      );
+    }
+
+    if (error.status === 404 || error.message?.includes('model')) {
+      return c.json(
+        {
+          code: 'ai_provider_error',
+          message: error.message || 'Model not found',
+        },
+        500
       );
     }
 
