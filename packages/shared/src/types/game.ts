@@ -20,7 +20,7 @@ export const GameAttemptSchema = z.object({
   correctAnswer: z.string(),
   userAnswer: z.string(),
   isCorrect: z.boolean(),
-  attemptNumber: z.number().int().min(1).max(3),
+  attemptNumber: z.number().int().min(1).max(2),
   timestamp: z.number(),
 });
 export type GameAttempt = z.infer<typeof GameAttemptSchema>;

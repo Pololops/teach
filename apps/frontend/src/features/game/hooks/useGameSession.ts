@@ -5,7 +5,7 @@ import { gameDb } from '@/shared/lib/storage/gameDb';
 import { fetchGameQuestion, getGameError } from '@/shared/services/gameService';
 import type { GameSession, GameAttempt, CEFRLevel } from '@teach/shared';
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 2;
 
 interface UseGameSessionOptions {
   userId: string;
@@ -121,7 +121,7 @@ export function useGameSession({ userId, level = 'B1' }: UseGameSessionOptions) 
         // Correct answer - update session
         const updatedSession: GameSession = {
           ...currentSession,
-          score: currentSession.score + (4 - attemptNumber), // 3 points for first try, 2 for second, 1 for third
+          score: currentSession.score + (3 - attemptNumber), // 2 points for first try, 1 for second
           correctAnswers: currentSession.correctAnswers + 1,
           totalQuestions: currentSession.totalQuestions + 1,
           currentStreak: currentSession.currentStreak + 1,
