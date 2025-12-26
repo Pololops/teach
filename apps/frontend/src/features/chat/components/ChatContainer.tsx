@@ -113,8 +113,6 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
       <MessageList
         messages={messages}
         streamingContent={streamingContent}
-        error={error}
-        onErrorAction={handleErrorAction}
         onSendPrompt={handlePromptClick}
       />
 
