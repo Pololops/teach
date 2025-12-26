@@ -22,6 +22,7 @@ export enum ErrorCode {
   AI_TIMEOUT = 'AI_TIMEOUT',
   AI_INVALID_RESPONSE = 'AI_INVALID_RESPONSE',
   NO_AI_PROVIDER = 'NO_AI_PROVIDER',
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
 
   // Resource Errors
   NOT_FOUND = 'NOT_FOUND',
@@ -211,6 +212,19 @@ export const ERROR_MESSAGES: Record<ErrorCode, Omit<AppError, 'details'>> = {
     actions: [
       { label: 'Réessayer', action: 'retry', isPrimary: true },
       { label: 'Retour à l\'accueil', action: 'navigate', target: '/' },
+    ],
+  },
+
+  [ErrorCode.RATE_LIMIT_EXCEEDED]: {
+    code: ErrorCode.RATE_LIMIT_EXCEEDED,
+    message: 'Limite de taux dépassée',
+    userMessage: '⏳ Vous avez fait trop de requêtes. Attendez un moment et réessayez.',
+    severity: ErrorSeverity.WARNING,
+    retryable: true,
+    retryAfter: 60,
+    actions: [
+      { label: 'Attendre & Réessayer', action: 'wait', isPrimary: true },
+      { label: 'Annuler', action: 'dismiss' },
     ],
   },
 

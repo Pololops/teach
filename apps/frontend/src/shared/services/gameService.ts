@@ -1,5 +1,5 @@
 import type { CEFRLevel, GameQuestion } from '@teach/shared';
-import { parseError, ErrorCode, createError } from '@teach/shared';
+import { parseError, ErrorCode } from '@teach/shared';
 import type { AppError } from '@teach/shared';
 
 const API_BASE_URL = import.meta.env.VITE_AI_PROXY_URL || 'http://localhost:3000';
@@ -29,15 +29,15 @@ export async function fetchGameQuestion(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      
+
       // Create structured error based on status
       const error: AppError = {
         ...parseError({ status: response.status, ...errorData }),
-        code: response.status === 429 
-          ? ErrorCode.RATE_LIMIT_EXCEEDED 
+        code: response.status === 429
+          ? ErrorCode.RATE_LIMIT_EXCEEDED
           : ErrorCode.QUESTION_GENERATION_ERROR,
       };
-      
+
       throw error;
     }
 
