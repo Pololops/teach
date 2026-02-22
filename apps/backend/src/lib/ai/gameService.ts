@@ -232,7 +232,8 @@ export class GameService {
     level: CEFRLevel,
     previousWords: string[]
   ): Promise<GameQuestionResponse> {
-    let userPrompt = `Generate an emoji game question for CEFR level ${level}.`;
+    const emojiInstruction = this.getEmojiInstruction(level);
+    let userPrompt = `Generate an emoji game question for CEFR level ${level}. ${emojiInstruction}`;
     if (previousWords.length > 0) {
       userPrompt += ` Don't use these words: ${previousWords.join(', ')}`;
     }
@@ -255,6 +256,27 @@ export class GameService {
 
     const content = response.choices[0]?.message?.content || '';
     return this.parseGameQuestion(content);
+  }
+
+  /**
+   * Get emoji count instruction for the user prompt based on CEFR level
+   */
+  private getEmojiInstruction(level: CEFRLevel): string {
+    if (level === 'A1' || level === 'A2') {
+      return 'Use exactly 1 emoji.';
+    }
+    if (level === 'B1' || level === 'B2') {
+      return 'You MUST use exactly 2 emojis combined (no single emoji).';
+    }
+    return 'You MUST use exactly 3 emojis combined (no single emoji).';
+  }
+
+  /**
+   * Count emoji graphemes in a string using Intl.Segmenter
+   */
+  private countEmojis(text: string): number {
+    const segmenter = new Intl.Segmenter('en', { granularity: 'grapheme' });
+    return Array.from(segmenter.segment(text)).length;
   }
 
   /**
@@ -288,12 +310,23 @@ export class GameService {
       }
 
       // Validate all wrong answers are strings
-      if (!parsed.wrongAnswers.every((w: any) => typeof w === 'string')) {
+      if (!parsed.wrongAnswers.every((w: unknown) => typeof w === 'string')) {
         throw new Error('Invalid wrong answers format');
       }
 
+      // Strip whitespace from emoji and validate count (1-3 emojis)
+      const emoji = parsed.emoji.replace(/\s+/g, '');
+      const emojiCount = this.countEmojis(emoji);
+
+      if (emojiCount < 1 || emojiCount > 3) {
+        console.warn(
+          `Rejected question: emoji count ${emojiCount} out of range (1-3) for "${emoji}"`
+        );
+        throw new Error(`Invalid emoji count: ${emojiCount}`);
+      }
+
       return {
-        emoji: parsed.emoji,
+        emoji,
         correctAnswer: parsed.correctAnswer,
         wrongAnswers: parsed.wrongAnswers,
       };

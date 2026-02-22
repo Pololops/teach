@@ -247,17 +247,6 @@ pnpm build
 
 ---
 
-## 📚 Documentation
-
-- **[Specification](./specs/001-teach/spec.md)** — Complete feature requirements
-- **[Implementation Plan](./specs/001-teach/plan.md)** — Technical architecture & decisions
-- **[Quickstart Guide](./specs/001-teach/quickstart.md)** — Developer setup & workflows
-- **[Data Model](./specs/001-teach/data-model.md)** — Entity relationships & schemas
-- **[Research](./specs/001-teach/research.md)** — Technology choices & alternatives
-- **[API Contracts](./specs/001-teach/contracts/api.yaml)** — Backend API specification
-
----
-
 ## 🎯 Roadmap
 
 ### ✅ MVP (Current)
@@ -331,24 +320,3 @@ Built with love for language learners everywhere.
 **Technologies**: React, TypeScript, Vite, Hono, OpenAI, Anthropic, Dexie.js, Tailwind CSS, Shadcn UI
 
 **Inspiration**: The belief that natural conversation is the best way to learn a language.
-
----
-
-## 📞 Support
-
-- **📖 Documentation**: Check the [specs folder](./specs/001-teach/)
-- **🐛 Bug Reports**: [Open an issue](../../issues)
-- **💡 Feature Requests**: [Start a discussion](../../discussions)
-- **❓ Questions**: Read the [Quickstart Guide](./specs/001-teach/quickstart.md)
-
----
-
-<div align="center">
-
-**Made with ❤️ for learners**
-
-Start your English learning journey today — no sign-up required.
-
-[Get Started](#-quick-start) · [View Docs](./specs/001-teach/) · [Report Bug](../../issues)
-
-</div>

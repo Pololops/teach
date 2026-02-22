@@ -2,7 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useGameStore } from '@/shared/stores/gameStore';
 import { gameDb } from '@/shared/lib/storage/gameDb';
+import { trackVocabulary, markVocabularyMastered } from '@/shared/lib/storage/entities/progress';
 import { fetchGameQuestion, getGameError } from '@/shared/services/gameService';
+import { evaluateGameLevelChange } from '../utils/levelEvaluation';
 import type { GameSession, GameAttempt, CEFRLevel } from '@teach/shared';
 
 const MAX_ATTEMPTS = 2;
@@ -10,12 +12,13 @@ const MAX_ATTEMPTS = 2;
 interface UseGameSessionOptions {
   userId: string;
   level?: CEFRLevel;
+  onLevelChange?: (newLevel: CEFRLevel) => void;
 }
 
 /**
  * Hook to manage game session lifecycle and question flow
  */
-export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) {
+export function useGameSession({ userId, level = 'A1', onLevelChange }: UseGameSessionOptions) {
   const queryClient = useQueryClient();
   const {
     currentSession,
@@ -131,6 +134,10 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
         setSession(updatedSession);
         setShowResult('correct');
 
+        // Track vocabulary progress
+        trackVocabulary(userId, [currentQuestion.correctAnswer]);
+        if (attemptNumber === 1) markVocabularyMastered(userId, currentQuestion.correctAnswer);
+
         // Add word to used words list
         addUsedWord(currentQuestion.correctAnswer);
 
@@ -138,6 +145,12 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
         setTimeout(async () => {
           await loadNextQuestion([...usedWords, currentQuestion.correctAnswer]);
         }, 3000);
+
+        // Evaluate level change after each resolved question
+        const evalCorrect = evaluateGameLevelChange(updatedSession, level);
+        if (evalCorrect.shouldChange && evalCorrect.newLevel) {
+          onLevelChange?.(evalCorrect.newLevel);
+        }
 
         // Invalidate stats query to refresh
         queryClient.invalidateQueries({ queryKey: ['gameStats', userId] });
@@ -154,6 +167,9 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
         setSession(updatedSession);
         setShowResult('wrong');
 
+        // Track vocabulary as encountered (not mastered)
+        trackVocabulary(userId, [currentQuestion.correctAnswer]);
+
         // Add word to used words list
         addUsedWord(currentQuestion.correctAnswer);
 
@@ -161,6 +177,12 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
         setTimeout(async () => {
           await loadNextQuestion([...usedWords, currentQuestion.correctAnswer]);
         }, 3000);
+
+        // Evaluate level change after each resolved question
+        const evalWrong = evaluateGameLevelChange(updatedSession, level);
+        if (evalWrong.shouldChange && evalWrong.newLevel) {
+          onLevelChange?.(evalWrong.newLevel);
+        }
 
         // Invalidate stats query to refresh
         queryClient.invalidateQueries({ queryKey: ['gameStats', userId] });
@@ -185,6 +207,8 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
       setShowResult,
       addUsedWord,
       userId,
+      level,
+      onLevelChange,
       queryClient,
       loadNextQuestion,
     ]
@@ -202,6 +226,7 @@ export function useGameSession({ userId, level = 'A1' }: UseGameSessionOptions) 
     };
 
     await gameDb.updateSession(updatedSession);
+
     resetGame();
     setIsInitialized(false);
 

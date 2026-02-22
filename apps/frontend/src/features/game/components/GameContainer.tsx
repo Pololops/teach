@@ -1,9 +1,10 @@
 import { ArrowLeft } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ErrorDisplay } from '@/components/ui/error-display';
 import { SectionLayout } from '@/components/ui/section-layout';
 import { useNavigationStore } from '@/shared/stores/navigationStore';
+import { useUserStore } from '@/shared/stores/userStore';
 import { getUser } from '@/shared/lib/storage/entities/user';
 import { getProgress } from '@/shared/lib/storage/entities/progress';
 import { useGameSession } from '../hooks/useGameSession';
@@ -11,16 +12,18 @@ import { EmojiDisplay } from './EmojiDisplay';
 import { AnswerButtons } from './AnswerButtons';
 import { ResultOverlay } from './ResultOverlay';
 import { GameStats } from './GameStats';
+import { LevelBadge } from '@/components/ui/level-badge';
 import { parseError } from '@teach/shared';
-import type { AppError, ErrorAction } from '@teach/shared';
+import type { AppError, CEFRLevel, ErrorAction } from '@teach/shared';
 
 /**
  * Main game container managing the emoji guessing game
  */
 export function GameContainer() {
   const { navigateTo } = useNavigationStore();
+  const { updateLevel } = useUserStore();
   const [userId, setUserId] = useState<string | null>(null);
-  const [userLevel, setUserLevel] = useState<'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2'>('A1');
+  const [userLevel, setUserLevel] = useState<CEFRLevel>('A1');
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<AppError | null>(null);
 
@@ -41,6 +44,14 @@ export function GameContainer() {
     loadUser();
   }, []);
 
+  const handleLevelChange = useCallback(
+    (newLevel: CEFRLevel) => {
+      updateLevel(newLevel);
+      setUserLevel(newLevel);
+    },
+    [updateLevel]
+  );
+
   const {
     session,
     question,
@@ -54,6 +65,7 @@ export function GameContainer() {
   } = useGameSession({
     userId: userId || '',
     level: userLevel,
+    onLevelChange: handleLevelChange,
   });
 
   const handleBack = async () => {
@@ -134,6 +146,7 @@ export function GameContainer() {
       <SectionLayout
         title="Jeu des émojis"
         onBack={handleBack}
+        rightContent={<LevelBadge level={userLevel} />}
       >
         {/* Main Game Area */}
         <div className="flex-1 flex flex-col items-center justify-center gap-8 p-4">

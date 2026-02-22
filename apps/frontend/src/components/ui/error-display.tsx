@@ -40,35 +40,36 @@ const severityConfig: Record<AppError['severity'], {
   },
 };
 
-const getIconForError = (error: AppError) => {
-  if (error.code.includes('NETWORK') || error.code.includes('OFFLINE')) {
-    return WifiOff;
-  }
-  if (error.code.includes('TIMEOUT') || error.code.includes('RATE_LIMIT')) {
-    return Clock;
-  }
-  return AlertCircle;
+type IconComponent = typeof AlertCircle;
+
+const ERROR_ICONS: Record<'network' | 'timeout' | 'default', IconComponent> = {
+  network: WifiOff,
+  timeout: Clock,
+  default: AlertCircle,
 };
 
-const getActionIcon = (action: ErrorAction['action']) => {
-  switch (action) {
-    case 'retry':
-      return RefreshCw;
-    case 'navigate':
-      return Home;
-    case 'contact':
-      return Mail;
-    default:
-      return ArrowRight;
-  }
+const getErrorIconKey = (error: AppError): keyof typeof ERROR_ICONS => {
+  if (error.code.includes('NETWORK') || error.code.includes('OFFLINE')) return 'network';
+  if (error.code.includes('TIMEOUT') || error.code.includes('RATE_LIMIT')) return 'timeout';
+  return 'default';
 };
+
+const ACTION_ICONS: Partial<Record<ErrorAction['action'], IconComponent>> = {
+  retry: RefreshCw,
+  navigate: Home,
+  contact: Mail,
+  dismiss: ArrowRight,
+  upgrade: ArrowRight,
+  wait: Clock,
+};
+const DEFAULT_ACTION_ICON = ArrowRight;
 
 /**
  * Displays user-friendly error messages with appropriate styling and actions
  */
 export function ErrorDisplay({ error, onAction, className = '' }: ErrorDisplayProps) {
   const config = severityConfig[error.severity];
-  const Icon = getIconForError(error);
+  const Icon = ERROR_ICONS[getErrorIconKey(error)];
 
   const handleAction = (action: ErrorAction) => {
     onAction?.(action);
@@ -103,7 +104,7 @@ export function ErrorDisplay({ error, onAction, className = '' }: ErrorDisplayPr
           {error.actions && error.actions.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {error.actions.map((action: ErrorAction, index: number) => {
-                const ActionIcon = getActionIcon(action.action);
+                const ActionIcon = ACTION_ICONS[action.action] ?? DEFAULT_ACTION_ICON;
                 return (
                   <Button
                     key={index}
@@ -130,7 +131,7 @@ export function ErrorDisplay({ error, onAction, className = '' }: ErrorDisplayPr
  */
 export function InlineError({ error, className = '' }: { error: AppError; className?: string }) {
   const config = severityConfig[error.severity];
-  const Icon = getIconForError(error);
+  const Icon = ERROR_ICONS[getErrorIconKey(error)];
 
   return (
     <div className={`flex items-center gap-2 text-sm ${config.text} ${className}`}>
@@ -145,7 +146,7 @@ export function InlineError({ error, className = '' }: { error: AppError; classN
  */
 export function FullScreenError({ error, onAction }: ErrorDisplayProps) {
   const config = severityConfig[error.severity];
-  const Icon = getIconForError(error);
+  const Icon = ERROR_ICONS[getErrorIconKey(error)];
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
@@ -170,7 +171,7 @@ export function FullScreenError({ error, onAction }: ErrorDisplayProps) {
           {error.actions && error.actions.length > 0 && (
             <div className="flex flex-col gap-3">
               {error.actions.map((action: ErrorAction, index: number) => {
-                const ActionIcon = getActionIcon(action.action);
+                const ActionIcon = ACTION_ICONS[action.action] ?? DEFAULT_ACTION_ICON;
                 return (
                   <Button
                     key={index}

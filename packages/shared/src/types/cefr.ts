@@ -31,6 +31,27 @@ export const CEFRMetricsSchema = z.object({
 export type CEFRMetrics = z.infer<typeof CEFRMetricsSchema>;
 
 /**
+ * CEFR levels in ascending order
+ */
+export const CEFR_LEVELS_ORDERED: readonly CEFRLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+/**
+ * Get the next CEFR level, or null if already at C2
+ */
+export function getNextLevel(level: CEFRLevel): CEFRLevel | null {
+  const index = CEFR_LEVELS_ORDERED.indexOf(level);
+  return index < CEFR_LEVELS_ORDERED.length - 1 ? CEFR_LEVELS_ORDERED[index + 1] : null;
+}
+
+/**
+ * Get the previous CEFR level, or null if already at A1
+ */
+export function getPreviousLevel(level: CEFRLevel): CEFRLevel | null {
+  const index = CEFR_LEVELS_ORDERED.indexOf(level);
+  return index > 0 ? CEFR_LEVELS_ORDERED[index - 1] : null;
+}
+
+/**
  * CEFR vocabulary lists (placeholder - will be populated with actual word lists)
  */
 export const CEFR_VOCABULARY_LISTS: Record<CEFRLevel, string[]> = {

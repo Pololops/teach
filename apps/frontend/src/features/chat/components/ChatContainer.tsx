@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { CEFRLevel, ErrorAction } from '@teach/shared';
 import { SectionLayout } from '@/components/ui/section-layout';
+import { LevelBadge } from '@/components/ui/level-badge';
 import { MessageList } from './MessageList';
 import { MessageInput } from '@/components/ui/message-input';
 import { ErrorDisplay } from '@/components/ui/error-display';
@@ -99,15 +100,15 @@ export function ChatContainer({ conversationId }: ChatContainerProps) {
   return (
     <SectionLayout
       title="Conversation"
-      subtitle={<p className="text-xs text-muted-foreground">Niveau: {targetLevel}</p>}
       rightContent={
-        contextStats && contextStats.truncated ? (
-          <div className="text-xs text-muted-foreground">
-            <span title={`Total: ${contextStats.totalMessages} messages | Tokens: ~${contextStats.estimatedTokens}`}>
-              Context: {contextStats.includedMessages}/{contextStats.totalMessages} messages
+        <div className="flex items-center gap-3">
+          {contextStats && contextStats.truncated && (
+            <span className="text-xs text-muted-foreground" title={`Total: ${contextStats.totalMessages} messages | Tokens: ~${contextStats.estimatedTokens}`}>
+              Context: {contextStats.includedMessages}/{contextStats.totalMessages}
             </span>
-          </div>
-        ) : undefined
+          )}
+          <LevelBadge level={targetLevel} />
+        </div>
       }
     >
       <MessageList
